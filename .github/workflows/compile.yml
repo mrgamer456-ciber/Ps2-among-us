@@ -1,53 +1,40 @@
-name: Build PS2 ELF
+name: Compilar Among Us PS2
 
 on:
   push:
-    branches:
-      - main
-      - master
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    container:
-      image: h4570/tyra:latest
-
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Configurar PS2DEV
-        run: |
-          export PS2DEV=/usr/local/ps2dev
-          export PS2SDK=$PS2DEV/ps2sdk
-          export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin
+      - name: Baixar Tyra
+        uses: actions/checkout@v4
+        with:
+          repository: h4570/tyra
+          path: tyra
 
-      - name: Compilar
+      - name: Compilar ELF PS2
         run: |
-          export PS2DEV=/usr/local/ps2dev
-          export PS2SDK=$PS2DEV/ps2sdk
-          export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin
+          docker run --rm \
+            -v ${{ github.workspace }}:/src \
+            -w /src \
+            h4570/tyra:latest \
+            bash -c "
+              export PS2DEV=/usr/local/ps2dev
+              export PS2SDK=\$PS2DEV/ps2sdk
+              export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin
 
-          mips64r5900el-ps2-elf-g++ \
-            src/main.cpp \
-            src/game.cpp \
-            -I./tyra/inc \
-            -I$PS2SDK/ee/include \
-            -L$PS2SDK/ee/lib \
-            -ltyra \
-            -lpatches \
-            -lgskit \
-            -ldma \
-            -lgraph \
-            -ldraw \
-            -lpacket \
-            -lpng \
-            -lz \
-            -o amongus.elf
+              make clean
+              make
+            "
 
       - name: Enviar ELF
         uses: actions/upload-artifact@v4
         with:
-          name: amongus-elf
+          name: amongus-ps2-elf
           path: amongus.elf
