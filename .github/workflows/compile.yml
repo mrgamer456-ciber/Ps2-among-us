@@ -6,10 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Compilar com a Tyra Engine
-        uses: h4570/tyra-cli@master
-        with:
-          args: cmake . && make
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/src -w /src h4570/tyra:latest cmake . && make
+          
       - name: Baixar o arquivo ELF pronto
         uses: actions/upload-artifact@v4
         with:
