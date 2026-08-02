@@ -1,42 +1,53 @@
-name: Compilar Jogo PS2
-on: [push]
+name: Build PS2 ELF
+
+on:
+  push:
+    branches:
+      - main
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    container:
+      image: h4570/tyra:latest
+
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Baixar Tyra Engine de forma nativa
+      - name: Baixar projeto
         uses: actions/checkout@v4
-        with:
-          repository: h4570/tyra
-          path: tyra-repo
 
-      - name: Organizar as pastas
+      - name: Configurar PS2DEV
         run: |
-          mv tyra-repo/engine ./tyra
-          rm -rf tyra-repo
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin
 
-      - name: Executar Compilacao Bruta PS2
+      - name: Compilar
         run: |
-          docker run --rm -v ${{ github.workspace }}:/src -w /src h4570/tyra:latest /bin/bash -c "
-            export PS2DEV=/usr/local/ps2dev
-            export PS2SDK=\$PS2DEV/ps2sdk
-            export PATH=\$PATH:\$PS2DEV/ee/bin:\$PS2DEV/bin
-            
-            mips64r5900el-ps2-elf-g++ -O2 -D_EE_ main.cpp game.cpp -o amongus.elf \
-              -I./tyra/inc \
-              -I\$PS2SDK/ee/include \
-              -I\$PS2SDK/common/include \
-              -I\$PS2DEV/ee/mips64r5900el-ps2-elf/include \
-              -L\$PS2SDK/ee/lib \
-              -L\$PS2DEV/ee/mips64r5900el-ps2-elf/lib \
-              -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket -lpng -lz
-          "
+          export PS2DEV=/usr/local/ps2dev
+          export PS2SDK=$PS2DEV/ps2sdk
+          export PATH=$PATH:$PS2DEV/bin:$PS2DEV/ee/bin
 
-      - name: Baixar o arquivo ELF pronto
+          mips64r5900el-ps2-elf-g++ \
+            src/main.cpp \
+            src/game.cpp \
+            -I./tyra/inc \
+            -I$PS2SDK/ee/include \
+            -L$PS2SDK/ee/lib \
+            -ltyra \
+            -lpatches \
+            -lgskit \
+            -ldma \
+            -lgraph \
+            -ldraw \
+            -lpacket \
+            -lpng \
+            -lz \
+            -o amongus.elf
+
+      - name: Enviar ELF
         uses: actions/upload-artifact@v4
         with:
-          name: meu-jogo-elf
+          name: amongus-elf
           path: amongus.elf
