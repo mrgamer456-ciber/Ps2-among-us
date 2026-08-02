@@ -5,13 +5,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Compilar com a Tyra Engine
         uses: h4570/tyra-cli@master
         with:
           args: cmake . && make
       - name: Baixar o arquivo ELF pronto
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: meu-jogo-elf
           path: amongus.elf
