@@ -21,11 +21,11 @@ jobs:
           mv tyra-repo/engine ./tyra
           rm -rf tyra-repo
 
-      # 4. Agora sim, entra no contêiner com tudo já baixado e pronto na pasta!
+            # 4. Executa o compilador injetando as definicoes do PS2 e as bibliotecas de imagem e graficos
       - name: Executar Compilacao Nativa PS2
         uses: docker://h4570/tyra:latest
         with:
-          args: /bin/bash -c "/usr/local/ps2dev/ee/bin/mips64r5900el-ps2-elf-g++ -O2 main.cpp game.cpp -o amongus.elf -I./tyra/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -L/usr/local/ps2dev/ps2sdk/ee/lib -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket"
+          args: /bin/bash -c "/usr/local/ps2dev/ee/bin/mips64r5900el-ps2-elf-g++ -O2 -D_EE_ main.cpp game.cpp -o amongus.elf -I./tyra/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -I/usr/local/ps2dev/ee/mips64r5900el-ps2-elf/include -L/usr/local/ps2dev/ps2sdk/ee/lib -L/usr/local/ps2dev/ee/mips64r5900el-ps2-elf/lib -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket -lpng -lz"
 
       # 5. Disponibiliza o ELF para download
       - name: Baixar o arquivo ELF pronto
