@@ -10,10 +10,9 @@ jobs:
 
       - name: Baixar Dependencias da Tyra
         run: |
-          wget https://github.com -O tyra.zip
-          unzip -q tyra.zip
-          mv tyra-master/engine ./tyra
-          rm -rf tyra.zip tyra-master
+          mkdir -p ./tyra
+          curl -L "https://github.com" | tar -xzf - --strip-components=2 "tyra-master/engine"
+          mv ./engine/* ./tyra/ 2>/dev/null || mv ./tyra-master/engine/* ./tyra/ 2>/dev/null || true
 
       - name: Executar Compilacao Nativa PS2
         run: |
