@@ -10,11 +10,7 @@ jobs:
 
       - name: Executar Compilacao Nativa PS2
         run: |
-          export PS2DEV=/usr/local/ps2dev
-          export PS2SDK=/usr/local/ps2dev/ps2sdk
-          export PATH=$PS2DEV/bin:$PS2DEV/ee/bin:$PATH
-          
-          ee-g++ -O2 main.cpp game.cpp -o amongus.elf -I$PS2SDK/ee/include -I$PS2SDK/common/include -L$PS2SDK/ee/lib -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket
+          /usr/local/ps2dev/ee/bin/mips64r5900el-ps2-elf-g++ -O2 main.cpp game.cpp -o amongus.elf -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -L/usr/local/ps2dev/ps2sdk/ee/lib -I/usr/local/ps2dev/ee/mips64r5900el-ps2-elf/include -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket
 
       - name: Baixar o arquivo ELF pronto
         uses: actions/upload-artifact@v4
