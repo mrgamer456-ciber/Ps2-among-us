@@ -16,9 +16,9 @@ void AmongUsGame::init() {
     auto& textureRepo = engine->renderer.getTextureRepository();
     
     // Tyra exige caminhos relativos partindo da raiz do CD/USB
-    textureMap = textureRepo.add(Tyra::FileUtils::fromOwnedFolder("assets/mapa.png"));
-    texturePlayer = textureRepo.add(Tyra::FileUtils::fromOwnedFolder("assets/player.png"));
-    textureMinimap = textureRepo.add(Tyra::FileUtils::fromOwnedFolder("assets/minimapa.png"));
+    textureMap = textureRepo.add(Tyra::FileUtils::fromOwnedFolder("assets/images/mapa.png"));
+texturePlayer = textureRepo.add(Tyra::FileUtils::fromOwnedFolder("assets/images/player.png"));
+textureMinimap = textureRepo.add(Tyra::FileUtils::fromOwnedFolder("assets/images/minimapa.png"));
 
     // 2. Configura as dimensões das Sprites 2D
     mapSprite.mode = Tyra::SpriteMode::MODE_STRETCH;
@@ -30,7 +30,7 @@ void AmongUsGame::init() {
     minimapSprite.position.set(0.0f, 24.0f); // Centraliza verticalmente
 
     // 3. Sistema de som nativo da Tyra (Lê o WAV de 44100Hz de forma estável)
-    engine->audio.loadWav(Tyra::FileUtils::fromOwnedFolder("assets/amongus.ogg"));
+    engine->audio.loadWav(Tyra::FileUtils::fromOwnedFolder("assets/music/amongus.wav"));
     bmgAudioId = engine->audio.playWav(0); // Toca no canal zero
     engine->audio.setLoopWav(bmgAudioId, true);
 }

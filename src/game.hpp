@@ -1,3 +1,5 @@
+#pragma once
+
 #include <tyra>
 
 class AmongUsGame : public Tyra::Game {
@@ -12,24 +14,28 @@ public:
 private:
     Tyra::Engine* engine;
 
-    // Gerenciadores de texturas separadas (essencial para poupar a VRAM do PS2)
-    Tyra::Texture* textureMap;
-    Tyra::Texture* texturePlayer;
-    Tyra::Texture* textureMinimap;
+    // Gerenciadores de texturas
+    Tyra::Texture* textureMap = nullptr;
+    Tyra::Texture* texturePlayer = nullptr;
+    Tyra::Texture* textureMinimap = nullptr;
 
-    // Sprite 2D do jogador e mapas
+    // Sprites
     Tyra::Sprite playerSprite;
     Tyra::Sprite mapSprite;
     Tyra::Sprite minimapSprite;
 
-    // Variáveis de Estado
+    // Posição do jogador
     float playerX = 1024.0f;
     float playerY = 512.0f;
+
+    // Câmera
     float camX = 0.0f;
     float camY = 0.0f;
+
+    // Estado
     bool showMiniMap = false;
     bool buttonPressedLastFrame = false;
-    
-    // Canal de áudio para o arquivo .wav convertida para 44100Hz
-    s32 bmgAudioId;
+
+    // Áudio
+    s32 bmgAudioId = -1;
 };
