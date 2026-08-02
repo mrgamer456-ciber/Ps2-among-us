@@ -8,9 +8,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Baixar Dependencias da Tyra
+        run: |
+          git clone --depth 1 https://github.com /tmp/tyra-repo
+          mv /tmp/tyra-repo/engine ./tyra
+
       - name: Executar Compilacao Nativa PS2
         run: |
-          /usr/local/ps2dev/ee/bin/mips64r5900el-ps2-elf-g++ -O2 main.cpp game.cpp -o amongus.elf -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -L/usr/local/ps2dev/ps2sdk/ee/lib -I/usr/local/ps2dev/ee/mips64r5900el-ps2-elf/include -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket
+          /usr/local/ps2dev/ee/bin/mips64r5900el-ps2-elf-g++ -O2 main.cpp game.cpp -o amongus.elf -I./tyra/inc -I/usr/local/ps2dev/ps2sdk/ee/include -I/usr/local/ps2dev/ps2sdk/common/include -L/usr/local/ps2dev/ps2sdk/ee/lib -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket
 
       - name: Baixar o arquivo ELF pronto
         uses: actions/upload-artifact@v4
