@@ -8,15 +8,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Executar Compilacao
+      - name: Executar Compilacao Nativa PS2
         run: |
-          mkdir -p build
-          cd build
-          cmake ..
-          make
+          ee-g++ -O2 main.cpp game.cpp -o amongus.elf -I$PS2DEV/ps2sdk/ee/include -I$PS2DEV/ps2sdk/common/include -L$PS2DEV/ps2sdk/ee/lib -ltyra -lpatches -lgskit -ldma -lgraph -ldraw -lpacket
 
       - name: Baixar o arquivo ELF pronto
         uses: actions/upload-artifact@v4
         with:
           name: meu-jogo-elf
-          path: build/amongus.elf
+          path: amongus.elf
