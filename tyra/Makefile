@@ -1,28 +1,26 @@
-EE_BIN = amongus.elf
+TARGET		:= libtyra.a
 
-EE_OBJS = \
-	src/main.o \
-	src/game.o
+#The Directories, Source, Includes, Objects, Binary and Resources
+SRCDIR      := src
+INCDIR      := inc
+BUILDDIR    := obj
+TARGETDIR   := bin
+RESDIR      := res
+SRCEXT      := cpp
+VSMEXT		:= vsm
+VCLEXT		:= vcl
+VCLPPEXT	:= vclpp
+DEPEXT      := d
+OBJEXT      := o
 
-EE_INCS = \
-	-I./tyra/inc
+#Flags, Libraries and Includes
+CFLAGS      := 
+LIB         := 
+LIBDIRS     := 
+INC         := -I$(INCDIR)
+INCDEP      := -I$(INCDIR)
 
-EE_LIBS = \
-	-ltyra \
-	-lpatches \
-	-lgskit \
-	-ldma \
-	-lgraph \
-	-ldraw \
-	-lpacket \
-	-lpng \
-	-lz
+include ../Makefile.base
 
-all: $(EE_BIN)
-
-clean:
-	rm -f $(EE_OBJS)
-	rm -f $(EE_BIN)
-
-include $(PS2SDK)/samples/Makefile.pref
-include $(PS2SDK)/samples/Makefile.eeglobal
+$(TARGET): $(OBJECTS) $(VCL_OBJECTS) $(VU_OBJECTS_VCL) $(VU_OBJECTS_VSM) $(IRXEM_OBJECTS)
+	$(AR) rcs $(TARGETDIR)/$(TARGET) $(OBJECTS) $(VCL_OBJECTS) $(VU_OBJECTS_VCL) $(VU_OBJECTS_VSM) $(IRXEM_OBJECTS)
