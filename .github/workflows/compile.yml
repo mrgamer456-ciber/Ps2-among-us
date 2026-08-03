@@ -23,6 +23,9 @@ jobs:
               export PS2SDK=\$PS2DEV/ps2sdk
               export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin
 
+              apt update
+              apt install -y libpng-dev
+
               make clean
               make
             "
