@@ -1,4 +1,4 @@
-#include <tyra/tyra.hpp>
+#include <tyra>
 
 int main(int argc, char* argv[]) {
     Tyra::EngineOptions options;
