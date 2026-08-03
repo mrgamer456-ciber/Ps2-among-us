@@ -1,4 +1,16 @@
-#include <tyra>
+#include <tyra/tyra.hpp>
+
+int main(int argc, char* argv[]) {
+    Tyra::EngineOptions options;
+
+    Tyra::Engine engine;
+    engine.init(options);
+
+    while (true) {
+    }
+
+    return 0;
+}
 #include "game.hpp"
 
 // Ponto de entrada padrão exigido pelo ecossistema do PS2DEV / Tyra
