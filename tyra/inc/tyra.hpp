@@ -10,8 +10,8 @@
 
 #pragma once
 
-#include "./engine.hpp"
-#include "./debug/debug.hpp"
+#include "engine.hpp"
+#include "debug/debug.hpp"
 #include "./file/file_utils.hpp"
 #include "./loaders/3d/md2_loader/md2_loader.hpp"
 #include "./loaders/3d/obj_loader/obj_loader.hpp"
