@@ -12,8 +12,8 @@
 
 #include "engine.hpp"
 #include "debug/debug.hpp"
-#include "./file/file_utils.hpp"
-#include "./loaders/3d/md2_loader/md2_loader.hpp"
+#include "file/file_utils.hpp"
+#include "loaders/3d/md2_loader/md2_loader.hpp"
 #include "./loaders/3d/obj_loader/obj_loader.hpp"
 #include "./loaders/texture/png_loader.hpp"
 #include "./packet2/packet2_tyra_utils.hpp"
