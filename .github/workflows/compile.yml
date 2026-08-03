@@ -12,12 +12,6 @@ jobs:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Baixar Tyra
-        uses: actions/checkout@v4
-        with:
-          repository: h4570/tyra
-          path: tyra
-
       - name: Compilar ELF PS2
         run: |
           docker run --rm \
