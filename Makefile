@@ -5,7 +5,8 @@ EE_OBJS = \
 	src/game.o
 
 EE_INCS = \
-	-I./tyra/inc
+    -I./tyra/inc \
+    -I/usr/local/ps2dev/ps2sdk/ee/include
 
 EE_LIBS = \
 	-ltyra \
