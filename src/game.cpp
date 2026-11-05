@@ -14,11 +14,11 @@ void AmongUsGame::init() {
     auto& textureRepo = engine->renderer.getTextureRepository();
 
     textureMap = textureRepo.add(
-        Tyra::FileUtils::fromCwd("assets/images/mapa.png"));
+        Tyra::FileUtils::fromCwd("images/mapa.png"));
     texturePlayer = textureRepo.add(
-        Tyra::FileUtils::fromCwd("assets/images/player.png"));
+        Tyra::FileUtils::fromCwd("images/player.png"));
     textureMinimap = textureRepo.add(
-        Tyra::FileUtils::fromCwd("assets/images/minimapa.png"));
+        Tyra::FileUtils::fromCwd("images/minimapa.png"));
 
     // Na Tyra desta versão, cada textura precisa ser ligada ao ID do sprite.
     textureMap->addLink(mapSprite.id);
@@ -37,7 +37,7 @@ void AmongUsGame::init() {
     minimapSprite.mode = Tyra::MODE_STRETCH;
 
     engine->audio.song.load(
-        Tyra::FileUtils::fromCwd("assets/music/amongus.wav"));
+        Tyra::FileUtils::fromCwd("music/amongus.wav"));
     engine->audio.song.inLoop = true;
     engine->audio.song.play();
 }
