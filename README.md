@@ -4,6 +4,12 @@ Projeto experimental de Among Us para PS2, desenvolvido com a engine **Tyra** e 
 
 > **Estado atual:** a compilação do ELF foi concluída com sucesso no GitHub Actions. O funcionamento no console real ainda precisa ser testado.
 
+## Downloads rápidos
+
+[![Código-fonte](https://img.shields.io/badge/C%C3%B3DIGO-FONTE_ABERTO-0969DA?style=for-the-badge&logo=github)](https://github.com/mrgamer456-ciber/Ps2-among-us)
+[![ZIP completo](https://img.shields.io/badge/BAIXAR-amongus--ps2.zip_%7C_9%2C7_MB-0969DA?style=for-the-badge&logo=github)](https://github.com/mrgamer456-ciber/Ps2-among-us/actions/runs/42094757407/artifacts/13447412018)
+[![Compilação](https://img.shields.io/badge/ELF-compila%C3%A7%C3%A3o_%23106-0969DA?style=for-the-badge)](https://github.com/mrgamer456-ciber/Ps2-among-us/actions/runs/42094757407)
+
 ## Downloads
 
 | Etiqueta | Arquivo | Para que serve |
