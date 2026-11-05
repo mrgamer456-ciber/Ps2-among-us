@@ -4,11 +4,16 @@ EE_OBJS = \
 	src/main.o \
 	src/game.o
 
+# Headers do PS2SDK, incluindo as bibliotecas de ports (libpng).
 EE_INCS = \
     -I./tyra/inc \
-    -I/usr/local/ps2dev/ps2sdk/ee/include
+    -I$(PS2SDK)/ee/include \
+    -I$(PS2SDK)/common/include \
+    -I$(PS2SDK)/ports/include
 
+# As bibliotecas de ports ficam em PS2SDK/ports/lib.
 EE_LIBS = \
+    -L$(PS2SDK)/ports/lib \
 	-ltyra \
 	-lpatches \
 	-lgskit \
