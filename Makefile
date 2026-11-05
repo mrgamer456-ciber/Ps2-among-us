@@ -1,34 +1,29 @@
-EE_BIN = amongus.elf
+TARGET := amongus.elf
+ENGINEDIR := tyra
 
-EE_OBJS = \
-	src/main.o \
-	src/game.o
+SRCDIR := src
+INCDIR := src
+BUILDDIR := obj
+TARGETDIR := bin
+RESDIR := assets
+SRCEXT := cpp
+VSMEXT := vsm
+VCLEXT := vcl
+VCLPPEXT := vclpp
+DEPEXT := d
+OBJEXT := o
 
-# Headers do PS2SDK, incluindo as bibliotecas de ports (libpng).
-EE_INCS = \
-    -I./tyra/inc \
-    -I$(PS2SDK)/ee/include \
-    -I$(PS2SDK)/common/include \
-    -I$(PS2SDK)/ports/include
+CFLAGS :=
+LIB := -ltyra
+LIBDIRS := -L$(ENGINEDIR)/bin
+INC := -I$(INCDIR) -I$(ENGINEDIR)/inc
+INCDEP := -I$(INCDIR) -I$(ENGINEDIR)/inc
 
-# As bibliotecas de ports ficam em PS2SDK/ports/lib.
-EE_LIBS = \
-    -L$(PS2SDK)/ports/lib \
-	-ltyra \
-	-lpatches \
-	-lgskit \
-	-ldma \
-	-lgraph \
-	-ldraw \
-	-lpacket \
-	-lpng \
-	-lz
+all: build-engine
 
-all: $(EE_BIN)
+build-engine:
+	$(MAKE) clean all -C $(ENGINEDIR)
 
-clean:
-	rm -f $(EE_OBJS)
-	rm -f $(EE_BIN)
+include Makefile.base
 
-include $(PS2SDK)/samples/Makefile.pref
-include $(PS2SDK)/samples/Makefile.eeglobal
+.PHONY: build-engine
