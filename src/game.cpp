@@ -1,109 +1,77 @@
 #include "game.hpp"
 
 namespace {
-constexpr float kMapWidth = 2048.0f;
-constexpr float kMapHeight = 1024.0f;
 constexpr float kScreenWidth = 640.0f;
 constexpr float kScreenHeight = 448.0f;
 constexpr float kPlayerWidth = 32.0f;
 constexpr float kPlayerHeight = 48.0f;
-constexpr float kPlayerSpeed = 150.0f;
-}  // namespace
-
-AmongUsGame::AmongUsGame(Tyra::Engine* t_engine) {
-    engine = t_engine;
+constexpr float kPlayerSpeed = 3.0f;
 }
 
-AmongUsGame::~AmongUsGame() {
-    // Libera as texturas carregadas antes de encerrar o jogo.
-    auto& textureRepo = engine->renderer.getTextureRepository();
-    if (textureMap) textureRepo.free(textureMap);
-    if (texturePlayer) textureRepo.free(texturePlayer);
-    if (textureMinimap) textureRepo.free(textureMinimap);
-}
+AmongUsGame::AmongUsGame(Tyra::Engine* t_engine) : engine(t_engine) {}
 
 void AmongUsGame::init() {
     auto& textureRepo = engine->renderer.getTextureRepository();
 
-    // Os caminhos são relativos à raiz dos arquivos do jogo.
     textureMap = textureRepo.add(
-        Tyra::FileUtils::fromOwnedFolder("assets/images/mapa.png"));
+        Tyra::FileUtils::fromCwd("assets/images/mapa.png"));
     texturePlayer = textureRepo.add(
-        Tyra::FileUtils::fromOwnedFolder("assets/images/player.png"));
+        Tyra::FileUtils::fromCwd("assets/images/player.png"));
     textureMinimap = textureRepo.add(
-        Tyra::FileUtils::fromOwnedFolder("assets/images/minimapa.png"));
+        Tyra::FileUtils::fromCwd("assets/images/minimapa.png"));
 
-    mapSprite.mode = Tyra::SpriteMode::MODE_STRETCH;
+    // Na Tyra desta versão, cada textura precisa ser ligada ao ID do sprite.
+    textureMap->addLink(mapSprite.id);
+    texturePlayer->addLink(playerSprite.id);
+    textureMinimap->addLink(minimapSprite.id);
+
+    mapSprite.position.set(0.0f, 0.0f);
     mapSprite.size.set(kScreenWidth, kScreenHeight);
+    mapSprite.mode = Tyra::MODE_STRETCH;
 
     playerSprite.size.set(kPlayerWidth, kPlayerHeight);
+    playerSprite.position.set(playerX, playerY);
 
-    minimapSprite.size.set(kScreenWidth, 400.0f);
     minimapSprite.position.set(0.0f, 24.0f);
+    minimapSprite.size.set(kScreenWidth, 400.0f);
+    minimapSprite.mode = Tyra::MODE_STRETCH;
 
-    // Tyra reproduz música de fundo pela API AudioSong.
     engine->audio.song.load(
-        Tyra::FileUtils::fromOwnedFolder("assets/music/amongus.wav"));
+        Tyra::FileUtils::fromCwd("assets/music/amongus.wav"));
     engine->audio.song.inLoop = true;
     engine->audio.song.play();
-
-    // Centraliza a câmera no jogador já no primeiro quadro.
-    camX = playerX - (kScreenWidth / 2.0f);
-    camY = playerY - (kScreenHeight / 2.0f);
 }
 
-void AmongUsGame::update(const float& deltaTime) {
-    auto& pad = engine->pad.getPad(0);
+void AmongUsGame::loop() {
+    const Tyra::PadButtons& pressed = engine->pad.getPressed();
+    const Tyra::PadButtons& clicked = engine->pad.getClicked();
 
-    const bool squarePressed = pad.isSquarePressed();
-    if (squarePressed && !buttonPressedLastFrame) {
+    if (clicked.Square) {
         showMiniMap = !showMiniMap;
     }
-    buttonPressedLastFrame = squarePressed;
 
-    if (showMiniMap) return;
+    if (!showMiniMap) {
+        if (pressed.DpadLeft)  playerX -= kPlayerSpeed;
+        if (pressed.DpadRight) playerX += kPlayerSpeed;
+        if (pressed.DpadUp)    playerY -= kPlayerSpeed;
+        if (pressed.DpadDown)  playerY += kPlayerSpeed;
+    }
 
-    const float speed = kPlayerSpeed * deltaTime;
-
-    if (pad.isDpadLeftPressed())  playerX -= speed;
-    if (pad.isDpadRightPressed()) playerX += speed;
-    if (pad.isDpadUpPressed())    playerY -= speed;
-    if (pad.isDpadDownPressed())  playerY += speed;
-
-    // Mantém o personagem dentro dos limites do mapa.
     if (playerX < 0.0f) playerX = 0.0f;
     if (playerY < 0.0f) playerY = 0.0f;
-    if (playerX > kMapWidth - kPlayerWidth)
-        playerX = kMapWidth - kPlayerWidth;
-    if (playerY > kMapHeight - kPlayerHeight)
-        playerY = kMapHeight - kPlayerHeight;
+    if (playerX > kScreenWidth - kPlayerWidth)
+        playerX = kScreenWidth - kPlayerWidth;
+    if (playerY > kScreenHeight - kPlayerHeight)
+        playerY = kScreenHeight - kPlayerHeight;
 
-    // A câmera acompanha o jogador sem ultrapassar as bordas do cenário.
-    camX = playerX - (kScreenWidth / 2.0f);
-    camY = playerY - (kScreenHeight / 2.0f);
+    playerSprite.position.set(playerX, playerY);
 
-    if (camX < 0.0f) camX = 0.0f;
-    if (camY < 0.0f) camY = 0.0f;
-    if (camX > kMapWidth - kScreenWidth)
-        camX = kMapWidth - kScreenWidth;
-    if (camY > kMapHeight - kScreenHeight)
-        camY = kMapHeight - kScreenHeight;
-}
-
-void AmongUsGame::render() {
     engine->renderer.beginFrame();
-    auto& renderer2D = engine->renderer.renderer2D;
-
-    mapSprite.offset.set(camX, camY);
-    renderer2D.render(&mapSprite, textureMap);
-
-    const float screenX = playerX - camX;
-    const float screenY = playerY - camY;
-    playerSprite.position.set(screenX, screenY);
-    renderer2D.render(&playerSprite, texturePlayer);
+    engine->renderer.renderer2D.render(mapSprite);
+    engine->renderer.renderer2D.render(playerSprite);
 
     if (showMiniMap) {
-        renderer2D.render(&minimapSprite, textureMinimap);
+        engine->renderer.renderer2D.render(minimapSprite);
     }
 
     engine->renderer.endFrame();
