@@ -23,8 +23,9 @@ jobs:
               export PS2SDK=\$PS2DEV/ps2sdk
               export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin
 
-              apt update
-              apt install -y libpng-dev
+              echo 'Verificando libpng do PS2SDK...'
+              test -f \$PS2SDK/ports/include/png.h
+              test -f \$PS2SDK/ports/lib/libpng.a
 
               make clean
               make
