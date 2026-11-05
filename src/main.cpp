@@ -1,21 +1,11 @@
-#include "tyra.hpp"
-
-int main(int argc, char* argv[]) {
-    Tyra::EngineOptions options;
-
-    Tyra::Engine engine;
-    engine.init(options);
-
-    while (true) {
-    }
-
-    return 0;
-}
 #include "game.hpp"
 
-// Ponto de entrada padrão exigido pelo ecossistema do PS2DEV / Tyra
+// Ponto de entrada do Among Us para PS2.
 int main(int argc, char* argv[]) {
-    // Inicializa a Engine Tyra e define as configurações de hardware
+    (void)argc;
+    (void)argv;
+
+    // Inicializa a Engine Tyra com a resolução do PS2.
     Tyra::EngineOptions options;
     options.window.width = 640;
     options.window.height = 448;
@@ -23,10 +13,8 @@ int main(int argc, char* argv[]) {
     Tyra::Engine engine;
     engine.init(options);
 
-    // Instancia a classe principal do seu Among Us
+    // Inicia o jogo e entrega o loop principal à Engine.
     AmongUsGame game(&engine);
-    
-    // Inicia o loop infinito de processamento do PS2
     engine.run(&game);
 
     return 0;
