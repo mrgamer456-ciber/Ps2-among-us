@@ -41,10 +41,11 @@ void AmongUsGame::init() {
     minimapSprite.size.set(kScreenWidth, 400.0f);
     minimapSprite.position.set(0.0f, 24.0f);
 
-    engine->audio.loadWav(
+    // Tyra reproduz música de fundo pela API AudioSong.
+    engine->audio.song.load(
         Tyra::FileUtils::fromOwnedFolder("assets/music/amongus.wav"));
-    bmgAudioId = engine->audio.playWav(0);
-    engine->audio.setLoopWav(bmgAudioId, true);
+    engine->audio.song.inLoop = true;
+    engine->audio.song.play();
 
     // Centraliza a câmera no jogador já no primeiro quadro.
     camX = playerX - (kScreenWidth / 2.0f);
