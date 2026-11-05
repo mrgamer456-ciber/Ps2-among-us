@@ -7,32 +7,31 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: h4570/tyra
 
     steps:
+      - name: Instalar dependências do runner
+        run: |
+          apt-get update
+          apt-get install -y git make wget
+
+      - name: Configurar diretório seguro do Git
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Compilar ELF PS2
+      - name: Compilar engine Tyra e jogo
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/src \
-            -w /src \
-            h4570/tyra:latest \
-            bash -c "
-              export PS2DEV=/usr/local/ps2dev
-              export PS2SDK=\$PS2DEV/ps2sdk
-              export PATH=\$PATH:\$PS2DEV/bin:\$PS2DEV/ee/bin
+          echo "Compilando engine Tyra e Among Us para PS2..."
+          make clean all
+          test -s bin/amongus.elf
+          file bin/amongus.elf
+          ls -lh bin/amongus.elf
 
-              echo 'Verificando libpng do PS2SDK...'
-              test -f \$PS2SDK/ports/include/png.h
-              test -f \$PS2SDK/ports/lib/libpng.a
-
-              make clean
-              make
-            "
-
-      - name: Enviar ELF
+      - name: Enviar pacote para teste no PS2
         uses: actions/upload-artifact@v4
         with:
-          name: amongus-ps2-elf
-          path: amongus.elf
+          name: amongus-ps2
+          path: bin/
+          if-no-files-found: error
