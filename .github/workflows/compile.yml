@@ -26,7 +26,6 @@ jobs:
           echo "Compilando engine Tyra e Among Us para PS2..."
           make clean all
           test -s bin/amongus.elf
-          file bin/amongus.elf
           ls -lh bin/amongus.elf
 
       - name: Enviar pacote para teste no PS2
