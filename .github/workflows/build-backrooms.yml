@@ -74,7 +74,8 @@ jobs:
             test -s tyrarooms/build/backrooms-solid-reversed-z-test.elf
             test -s tyrarooms/build/gs_diagnostic.elf
             test -s tyrarooms/build/backrooms-isolamento-01.elf
-            ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/backrooms-solid-reversed-z-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf tyrarooms/build/backrooms-isolamento-01.elf
+            test -s tyrarooms/build/backrooms-z24-repair-v1.elf
+            ls -lh tyrarooms/build/backrooms-z24-repair-v1.elf tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/backrooms-solid-reversed-z-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf tyrarooms/build/backrooms-isolamento-01.elf
           } 2>&1 | tee tyrarooms/build/build.log
 
       - name: Upload build error log (only if build fails)
@@ -84,6 +85,13 @@ jobs:
           name: backrooms-build-error-log
           path: tyrarooms/build/build.log
           if-no-files-found: warn
+
+      - name: Upload 24-bit reversed-Z repair ELF v1
+        uses: actions/upload-artifact@v4
+        with:
+          name: backrooms-z24-repair-v1
+          path: tyrarooms/build/backrooms-z24-repair-v1.elf
+          if-no-files-found: error
 
       - name: Upload maze ELF
         uses: actions/upload-artifact@v4
