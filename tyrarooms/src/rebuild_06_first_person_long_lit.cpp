@@ -4,129 +4,409 @@
 #include <libpad.h>
 #include <math.h>
 
+/*
+ * BACKROOMS REBUILD 06 - FIRST PERSON / LONG LIT CORRIDOR
+ * World geometry is built from closed planes and ordered opaque surfaces.
+ * No texture dependency and no Z-buffer dependency.
+ */
+
 struct Vec3 { float x,y,z; };
 
 static GSGLOBAL *gs=0;
 static unsigned char padBuffer[256] __attribute__((aligned(64)));
-static float px=0.0f, pz=0.5f, yaw=0.0f, pitch=0.0f;
-static float walkTime=0.0f, moveAmount=0.0f;
-static const float PI=3.1415926535f;
 
-static u64 rgba(int r,int g,int b) { return GS_SETREG_RGBAQ(r,g,b,0x80,0); }
+static float playerX=0.0f;
+static float playerZ=1.0f;
+static float yaw=0.0f;
+static float pitch=0.0f;
+static float animTime=0.0f;
+static float walkPhase=0.0f;
+static float moveAmount=0.0f;
 
-static bool project(const Vec3 &p,float &sx,float &sy,int &sz) {
-    const float camY=1.62f + ((moveAmount>0.03f)?fabsf(sinf(walkTime*10.0f))*0.035f:0.0f);
-    float dx=p.x-px, dz=p.z-pz;
-    float side=dx*cosf(yaw)-dz*sinf(yaw);
-    float depth=dx*sinf(yaw)+dz*cosf(yaw);
-    if(depth<0.12f) return false;
-    float vertical=(p.y-camY) - depth*tanf(pitch);
-    float focal=(float)gs->Width*0.86f;
-    sx=(float)gs->Width*0.5f + side*focal/depth;
-    sy=(float)gs->Height*0.51f - vertical*focal/depth;
-    sz=(int)(depth*1500.0f);
+static const float ROOM_LEFT=-4.0f;
+static const float ROOM_RIGHT=4.0f;
+static const float ROOM_HEIGHT=3.35f;
+static const float ROOM_END=82.0f;
+static const float FOCAL=430.0f;
+
+static u64 color(int r,int g,int b) {
+    return GS_SETREG_RGBAQ(r,g,b,0x80,0);
+}
+
+static bool projectWorld(const Vec3 &p,float &sx,float &sy,int &sz) {
+    const float cameraBob=(moveAmount>0.03f)?fabsf(sinf(walkPhase*2.0f))*0.035f:0.0f;
+    const float cameraY=1.62f+cameraBob;
+    const float dx=p.x-playerX;
+    const float dz=p.z-playerZ;
+    const float side=dx*cosf(yaw)-dz*sinf(yaw);
+    const float depth=dx*sinf(yaw)+dz*cosf(yaw);
+    const float vertical=(p.y-cameraY)-depth*tanf(pitch);
+    if(depth<0.16f) return false;
+    sx=320.0f+side*FOCAL/depth;
+    sy=224.0f-vertical*FOCAL/depth;
+    sz=(int)(depth*1400.0f);
     if(sz<1) sz=1;
+    if(sz>65535) sz=65535;
     return true;
 }
 
-static void quad3(const Vec3 &a,const Vec3 &b,const Vec3 &c,const Vec3 &d,u64 color) {
-    float x1,y1,x2,y2,x3,y3,x4,y4; int z1,z2,z3,z4;
-    if(!project(a,x1,y1,z1)||!project(b,x2,y2,z2)||
-       !project(c,x3,y3,z3)||!project(d,x4,y4,z4)) return;
-    gsKit_prim_quad_3d(gs,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,color);
+static bool projectView(float x,float y,float depth,
+                        float &sx,float &sy,int &sz) {
+    if(depth<0.16f) return false;
+    sx=320.0f+x*FOCAL/depth;
+    sy=224.0f-y*FOCAL/depth;
+    sz=(int)(depth*1400.0f);
+    if(sz<1) sz=1;
+    if(sz>65535) sz=65535;
+    return true;
 }
 
-static void quad2(float x1,float y1,float x2,float y2,float x3,float y3,float x4,float y4,u64 color) {
-    gsKit_prim_quad_3d(gs,x1,y1,8,x2,y2,8,x3,y3,8,x4,y4,8,color);
+static void quadWorld(const Vec3 &a,const Vec3 &b,
+                      const Vec3 &c,const Vec3 &d,u64 col) {
+    float x1,y1,x2,y2,x3,y3,x4,y4;
+    int z1,z2,z3,z4;
+    if(!projectWorld(a,x1,y1,z1)||!projectWorld(b,x2,y2,z2)||
+       !projectWorld(c,x3,y3,z3)||!projectWorld(d,x4,y4,z4)) return;
+    gsKit_prim_quad_3d(gs,x1,y1,z1,x2,y2,z2,
+                       x3,y3,z3,x4,y4,z4,col);
+}
+
+static void quadView(float ax,float ay,float az,
+                     float bx,float by,float bz,
+                     float cx,float cy,float cz,
+                     float dx,float dy,float dz,u64 col) {
+    float x1,y1,x2,y2,x3,y3,x4,y4;
+    int z1,z2,z3,z4;
+    if(!projectView(ax,ay,az,x1,y1,z1)||
+       !projectView(bx,by,bz,x2,y2,z2)||
+       !projectView(cx,cy,cz,x3,y3,z3)||
+       !projectView(dx,dy,dz,x4,y4,z4)) return;
+    gsKit_prim_quad_3d(gs,x1,y1,z1,x2,y2,z2,
+                       x3,y3,z3,x4,y4,z4,col);
+}
+
+/* Draw only the camera-visible faces of a small first-person hand block. */
+static void viewBox(float x,float y,float depth,
+                    float w,float h,float d,
+                    u64 front,u64 outer,u64 upper,int sideSign) {
+    const float x0=x-w*0.5f,x1=x+w*0.5f;
+    const float y0=y-h*0.5f,y1=y+h*0.5f;
+    const float z0=depth-d*0.5f,z1=depth+d*0.5f;
+
+    quadView(x0,y1,z0,x1,y1,z0,x1,y1,z1,x0,y1,z1,upper);
+    if(sideSign<0)
+        quadView(x0,y0,z0,x0,y0,z1,x0,y1,z1,x0,y1,z0,outer);
+    else
+        quadView(x1,y0,z1,x1,y0,z0,x1,y1,z0,x1,y1,z1,outer);
+    quadView(x0,y0,z0,x1,y0,z0,x1,y1,z0,x0,y1,z0,front);
+}
+
+/* A tapered 3D sleeve prism, angled from the shoulder toward the wrist. */
+static void drawArm(int side,float swing,float bob) {
+    const float sx=(float)side*0.82f+(float)side*swing*0.18f;
+    const float sy=-0.88f+bob;
+    const float sd=1.95f+(float)side*swing*0.10f;
+    const float wx=(float)side*0.48f+(float)side*swing*0.42f;
+    const float wy=-0.34f+bob+swing*0.08f;
+    const float wd=0.88f-(float)side*swing*0.08f;
+
+    float dx=wx-sx,dy=wy-sy;
+    float len=sqrtf(dx*dx+dy*dy);
+    if(len<0.01f) len=0.01f;
+    const float nx=-dy/len;
+    const float ny= dx/len;
+    const float outer=(side<0)?1.0f:-1.0f;
+    const float shoulderHalf=0.205f;
+    const float wristHalf=0.145f;
+    const float thick=0.19f;
+
+    const float smx=sx-nx*shoulderHalf;
+    const float smy=sy-ny*shoulderHalf;
+    const float spx=sx+nx*shoulderHalf;
+    const float spy=sy+ny*shoulderHalf;
+    const float wmx=wx-nx*wristHalf;
+    const float wmy=wy-ny*wristHalf;
+    const float wpx=wx+nx*wristHalf;
+    const float wpy=wy+ny*wristHalf;
+
+    /* Near/front face of sleeve. */
+    quadView(smx,smy,sd-thick*0.5f,
+             spx,spy,sd-thick*0.5f,
+             wpx,wpy,wd-thick*0.5f,
+             wmx,wmy,wd-thick*0.5f,color(57,70,88));
+
+    /* Outer sleeve face, giving the arm visible thickness. */
+    if(side<0) {
+        quadView(spx,spy,sd-thick*0.5f,
+                 spx,spy,sd+thick*0.5f,
+                 wpx,wpy,wd+thick*0.5f,
+                 wpx,wpy,wd-thick*0.5f,color(36,47,63));
+    } else {
+        quadView(smx,smy,sd-thick*0.5f,
+                 smx,smy,sd+thick*0.5f,
+                 wmx,wmy,wd+thick*0.5f,
+                 wmx,wmy,wd-thick*0.5f,color(36,47,63));
+    }
+
+    /* Small cuff seam close to the wrist. */
+    quadView(wx-nx*wristHalf,wy-ny*wristHalf,wd-thick*0.5f,
+             wx+nx*wristHalf,wy+ny*wristHalf,wd-thick*0.5f,
+             wx+nx*wristHalf,wy+ny*wristHalf,wd+thick*0.5f,
+             wx-nx*wristHalf,wy-ny*wristHalf,wd+thick*0.5f,color(91,103,119));
+}
+
+static int lampBoost(float z) {
+    int nearest=(int)((z-6.0f)/12.0f+0.5f);
+    const float lampZ=6.0f+(float)nearest*12.0f;
+    const float distance=fabsf(z-lampZ);
+    if(distance>=6.0f) return 0;
+    return (int)((6.0f-distance)*1.7f);
+}
+
+static void drawEndWall() {
+    quadWorld(Vec3{ROOM_LEFT,0.0f,ROOM_END},
+              Vec3{ROOM_RIGHT,0.0f,ROOM_END},
+              Vec3{ROOM_RIGHT,ROOM_HEIGHT,ROOM_END},
+              Vec3{ROOM_LEFT,ROOM_HEIGHT,ROOM_END},color(153,132,76));
+
+    /* A dark doorway at the far end gives the corridor a destination. */
+    quadWorld(Vec3{-0.95f,0.12f,ROOM_END-0.015f},
+              Vec3{ 0.95f,0.12f,ROOM_END-0.015f},
+              Vec3{ 0.95f,2.85f,ROOM_END-0.015f},
+              Vec3{-0.95f,2.85f,ROOM_END-0.015f},color(47,40,29));
+    quadWorld(Vec3{-1.08f,2.82f,ROOM_END-0.025f},
+              Vec3{ 1.08f,2.82f,ROOM_END-0.025f},
+              Vec3{ 1.08f,2.96f,ROOM_END-0.025f},
+              Vec3{-1.08f,2.96f,ROOM_END-0.025f},color(119,101,59));
+}
+
+static void drawSideWalls(float start) {
+    for(float z0=start;z0<ROOM_END;z0+=8.0f) {
+        float z1=z0+8.0f;
+        if(z1>ROOM_END) z1=ROOM_END;
+        const float mid=(z0+z1)*0.5f;
+        const int boost=lampBoost(mid);
+
+        quadWorld(Vec3{ROOM_LEFT,0.0f,z0},
+                  Vec3{ROOM_LEFT,0.0f,z1},
+                  Vec3{ROOM_LEFT,ROOM_HEIGHT,z1},
+                  Vec3{ROOM_LEFT,ROOM_HEIGHT,z0},
+                  color(184+boost,163+boost,97+boost/2));
+        quadWorld(Vec3{ROOM_RIGHT,0.0f,z1},
+                  Vec3{ROOM_RIGHT,0.0f,z0},
+                  Vec3{ROOM_RIGHT,ROOM_HEIGHT,z0},
+                  Vec3{ROOM_RIGHT,ROOM_HEIGHT,z1},
+                  color(174+boost,153+boost,90+boost/2));
+    }
+
+    /* Narrow seams at real wall joints, not broad decorative stripes. */
+    for(int i=1;i<11;i++) {
+        const float z=(float)i*8.0f;
+        if(z<start || z>ROOM_END) continue;
+        quadWorld(Vec3{ROOM_LEFT+0.012f,0.0f,z-0.018f},
+                  Vec3{ROOM_LEFT+0.012f,ROOM_HEIGHT,z-0.018f},
+                  Vec3{ROOM_LEFT+0.012f,ROOM_HEIGHT,z+0.018f},
+                  Vec3{ROOM_LEFT+0.012f,0.0f,z+0.018f},color(159,139,82));
+        quadWorld(Vec3{ROOM_RIGHT-0.012f,0.0f,z+0.018f},
+                  Vec3{ROOM_RIGHT-0.012f,ROOM_HEIGHT,z+0.018f},
+                  Vec3{ROOM_RIGHT-0.012f,ROOM_HEIGHT,z-0.018f},
+                  Vec3{ROOM_RIGHT-0.012f,0.0f,z-0.018f},color(151,131,76));
+    }
+
+    /* Continuous baseboards and upper wall trim. */
+    quadWorld(Vec3{ROOM_LEFT+0.01f,0.12f,start},
+              Vec3{ROOM_LEFT+0.01f,0.12f,ROOM_END},
+              Vec3{ROOM_LEFT+0.01f,0.25f,ROOM_END},
+              Vec3{ROOM_LEFT+0.01f,0.25f,start},color(112,94,54));
+    quadWorld(Vec3{ROOM_RIGHT-0.01f,0.12f,ROOM_END},
+              Vec3{ROOM_RIGHT-0.01f,0.12f,start},
+              Vec3{ROOM_RIGHT-0.01f,0.25f,start},
+              Vec3{ROOM_RIGHT-0.01f,0.25f,ROOM_END},color(104,87,51));
+    quadWorld(Vec3{ROOM_LEFT+0.01f,3.10f,start},
+              Vec3{ROOM_LEFT+0.01f,3.10f,ROOM_END},
+              Vec3{ROOM_LEFT+0.01f,3.22f,ROOM_END},
+              Vec3{ROOM_LEFT+0.01f,3.22f,start},color(142,128,83));
+    quadWorld(Vec3{ROOM_RIGHT-0.01f,3.10f,ROOM_END},
+              Vec3{ROOM_RIGHT-0.01f,3.10f,start},
+              Vec3{ROOM_RIGHT-0.01f,3.22f,start},
+              Vec3{ROOM_RIGHT-0.01f,3.22f,ROOM_END},color(134,120,77));
+}
+
+static void drawFloor(float start) {
+    for(float z0=start;z0<ROOM_END;z0+=6.0f) {
+        float z1=z0+6.0f;
+        if(z1>ROOM_END) z1=ROOM_END;
+        const int boost=lampBoost((z0+z1)*0.5f)/2;
+        quadWorld(Vec3{ROOM_LEFT,0.0f,z1},
+                  Vec3{ROOM_RIGHT,0.0f,z1},
+                  Vec3{ROOM_RIGHT,0.0f,z0},
+                  Vec3{ROOM_LEFT,0.0f,z0},
+                  color(83+boost,71+boost,50+boost/2));
+    }
+
+    /* Very subtle carpet joins every few metres. */
+    for(float z=start+3.0f;z<ROOM_END;z+=3.0f) {
+        quadWorld(Vec3{ROOM_LEFT,0.012f,z-0.012f},
+                  Vec3{ROOM_RIGHT,0.012f,z-0.012f},
+                  Vec3{ROOM_RIGHT,0.012f,z+0.012f},
+                  Vec3{ROOM_LEFT,0.012f,z+0.012f},color(78,67,48));
+    }
+}
+
+static void drawCeiling(float start) {
+    for(float z0=start;z0<ROOM_END;z0+=8.0f) {
+        float z1=z0+8.0f;
+        if(z1>ROOM_END) z1=ROOM_END;
+        quadWorld(Vec3{ROOM_LEFT,ROOM_HEIGHT,z0},
+                  Vec3{ROOM_LEFT,ROOM_HEIGHT,z1},
+                  Vec3{ROOM_RIGHT,ROOM_HEIGHT,z1},
+                  Vec3{ROOM_RIGHT,ROOM_HEIGHT,z0},color(166,162,145));
+    }
+
+    for(int i=1;i<11;i++) {
+        const float z=(float)i*8.0f;
+        if(z<start || z>ROOM_END) continue;
+        quadWorld(Vec3{ROOM_LEFT,3.29f,z-0.045f},
+                  Vec3{ROOM_RIGHT,3.29f,z-0.045f},
+                  Vec3{ROOM_RIGHT,3.35f,z+0.045f},
+                  Vec3{ROOM_LEFT,3.35f,z+0.045f},color(143,140,125));
+    }
+}
+
+static void drawDoor(int side,float z) {
+    const float x=(side<0)?ROOM_LEFT+0.025f:ROOM_RIGHT-0.025f;
+    const float w=1.45f;
+    /* Dark recessed door panel. */
+    quadWorld(Vec3{x,0.20f,z},Vec3{x,0.20f,z+w},
+              Vec3{x,2.78f,z+w},Vec3{x,2.78f,z},color(55,47,34));
+    /* Three raised frame pieces and a small handle. */
+    quadWorld(Vec3{x,0.16f,z-0.09f},Vec3{x,0.16f,z+0.01f},
+              Vec3{x,2.88f,z+0.01f},Vec3{x,2.88f,z-0.09f},color(132,112,65));
+    quadWorld(Vec3{x,0.16f,z+w-0.01f},Vec3{x,0.16f,z+w+0.09f},
+              Vec3{x,2.88f,z+w+0.09f},Vec3{x,2.88f,z+w-0.01f},color(132,112,65));
+    quadWorld(Vec3{x,2.78f,z-0.09f},Vec3{x,2.78f,z+w+0.09f},
+              Vec3{x,2.90f,z+w+0.09f},Vec3{x,2.90f,z-0.09f},color(132,112,65));
+    quadWorld(Vec3{x-0.008f,1.12f,z+w-0.20f},Vec3{x-0.008f,1.12f,z+w-0.12f},
+              Vec3{x-0.008f,1.28f,z+w-0.12f},Vec3{x-0.008f,1.28f,z+w-0.20f},color(205,178,104));
+}
+
+static void drawLamp(float z) {
+    /* Grey housing and a bright inset fluorescent panel. */
+    quadWorld(Vec3{-0.98f,3.285f,z-0.88f},
+              Vec3{ 0.98f,3.285f,z-0.88f},
+              Vec3{ 0.98f,3.285f,z+0.88f},
+              Vec3{-0.98f,3.285f,z+0.88f},color(111,109,99));
+    quadWorld(Vec3{-0.79f,3.265f,z-0.70f},
+              Vec3{ 0.79f,3.265f,z-0.70f},
+              Vec3{ 0.79f,3.265f,z+0.70f},
+              Vec3{-0.79f,3.265f,z+0.70f},color(250,244,214));
+
+    /* A soft-looking warm patch painted into the carpet below the lamp. */
+    quadWorld(Vec3{-3.0f,0.018f,z-3.2f},
+              Vec3{ 3.0f,0.018f,z-3.2f},
+              Vec3{ 2.35f,0.018f,z+3.2f},
+              Vec3{-2.35f,0.018f,z+3.2f},color(100,88,61));
 }
 
 static void drawRoom() {
-    const float L=-4.0f,R=4.0f,H=3.35f;
-    const float start=pz+0.18f, end=82.0f;
-    const u64 wall1=rgba(193,171,91), wall2=rgba(178,157,80), wall3=rgba(205,184,105);
-    const u64 floor1=rgba(104,91,60), floor2=rgba(91,80,53);
-    const u64 ceil1=rgba(165,161,143), ceil2=rgba(151,148,132);
-    const u64 trim=rgba(116,99,55), dark=rgba(49,43,31);
-    const u64 lamp=rgba(255,247,203), glow=rgba(220,207,150);
-    
-    /* Far wall closes a long, continuous corridor. */
-    quad3(Vec3{L,0,end},Vec3{R,0,end},Vec3{R,H,end},Vec3{L,H,end},wall2);
+    const float start=playerZ+0.20f;
+    drawEndWall();
+    drawSideWalls(start);
+    drawFloor(start);
+    drawCeiling(start);
 
-    /* Ceiling is one continuous plane with repeating structural seams. */
-    for(int i=0;i<40;i++) {
-        float z0=start+(end-start)*(float)i/40.0f;
-        float z1=start+(end-start)*(float)(i+1)/40.0f;
-        u64 c=(i&1)?ceil1:ceil2;
-        quad3(Vec3{L,H,z0},Vec3{R,H,z0},Vec3{R,H,z1},Vec3{L,H,z1},c);
-        /* Ceiling fluorescent fixtures: bright rectangular light panels. */
-        if((i%2)==0) {
-            float mid=(z0+z1)*0.5f;
-            quad3(Vec3{-0.72f,H-0.025f,mid-0.52f},Vec3{0.72f,H-0.025f,mid-0.52f},
-                  Vec3{0.72f,H-0.025f,mid+0.52f},Vec3{-0.72f,H-0.025f,mid+0.52f},lamp);
-            quad3(Vec3{-0.83f,H-0.045f,mid-0.58f},Vec3{0.83f,H-0.045f,mid-0.58f},
-                  Vec3{0.83f,H-0.045f,mid+0.58f},Vec3{-0.83f,H-0.045f,mid+0.58f},glow);
-        }
-    }
+    /* Doors are sparse landmarks so the hall reads as one large space. */
+    drawDoor(-1,18.0f);
+    drawDoor( 1,43.0f);
+    drawDoor(-1,62.0f);
 
-    /* Side walls are divided into tall, solid panels; no open gaps. */
-    for(int i=0;i<40;i++) {
-        float z0=start+(end-start)*(float)i/40.0f;
-        float z1=start+(end-start)*(float)(i+1)/40.0f;
-        u64 c=(i%3==0)?wall3:((i&1)?wall1:wall2);
-        quad3(Vec3{L,0,z0},Vec3{L,0,z1},Vec3{L,H,z1},Vec3{L,H,z0},c);
-        quad3(Vec3{R,0,z1},Vec3{R,0,z0},Vec3{R,H,z0},Vec3{R,H,z1},(i&1)?wall2:wall3);
-        /* Dark vertical seams and continuous lower/upper trim. */
-        quad3(Vec3{L+0.015f,0.0f,z0},Vec3{L+0.015f,0.0f,z0+0.025f},Vec3{L+0.015f,H,z0+0.025f},Vec3{L+0.015f,H,z0},trim);
-        quad3(Vec3{R-0.015f,0.0f,z0+0.025f},Vec3{R-0.015f,0.0f,z0},Vec3{R-0.015f,H,z0},Vec3{R-0.015f,H,z0+0.025f},trim);
+    for(int i=0;i<7;i++) {
+        const float z=6.0f+(float)i*12.0f;
+        if(z>start-1.0f) drawLamp(z);
     }
-    quad3(Vec3{L,0.10f,start},Vec3{L,0.10f,end},Vec3{L,0.24f,end},Vec3{L,0.24f,start},trim);
-    quad3(Vec3{R,0.10f,end},Vec3{R,0.10f,start},Vec3{R,0.24f,start},Vec3{R,0.24f,end},trim);
-    quad3(Vec3{L,3.08f,start},Vec3{L,3.08f,end},Vec3{L,3.20f,end},Vec3{L,3.20f,start},trim);
-    quad3(Vec3{R,3.08f,end},Vec3{R,3.08f,start},Vec3{R,3.20f,start},Vec3{R,3.20f,end},trim);
+}
 
-    /* Floor tiles and warm light pools underneath the fluorescent panels. */
-    for(int iz=0;iz<80;iz++) {
-        float z0=start+(end-start)*(float)iz/80.0f;
-        float z1=start+(end-start)*(float)(iz+1)/80.0f;
-        for(int ix=0;ix<8;ix++) {
-            float x0=L+(R-L)*(float)ix/8.0f;
-            float x1=L+(R-L)*(float)(ix+1)/8.0f;
-            u64 c=((ix+iz)&1)?floor1:floor2;
-            quad3(Vec3{x0,0.012f,z1},Vec3{x1,0.012f,z1},Vec3{x1,0.012f,z0},Vec3{x0,0.012f,z0},c);
-        }
-        if((iz%4)==1) {
-            float mid=(z0+z1)*0.5f;
-            quad3(Vec3{-1.25f,0.018f,mid-0.30f},Vec3{1.25f,0.018f,mid-0.30f},
-                  Vec3{1.25f,0.018f,mid+0.30f},Vec3{-1.25f,0.018f,mid+0.30f},rgba(126,111,69));
-        }
+/* Tapered, closed-looking sleeves are drawn in camera space.
+ * The near face and outer side meet at shared vertices: no detached quads. */
+static void drawArm(int side,float swing,float bob) {
+    const float shoulderX=(float)side*0.84f+(float)side*swing*0.18f;
+    const float shoulderY=-0.91f+bob;
+    const float shoulderZ=1.98f;
+    const float wristX=(float)side*0.48f+(float)side*swing*0.42f;
+    const float wristY=-0.34f+bob+swing*0.08f;
+    const float wristZ=0.88f;
+
+    float dx=wristX-shoulderX,dy=wristY-shoulderY;
+    float len=sqrtf(dx*dx+dy*dy);
+    if(len<0.01f) len=0.01f;
+    const float nx=-dy/len,ny=dx/len;
+    const float outer=(side<0)?1.0f:-1.0f;
+    const float sh=0.205f,wh=0.145f,thick=0.19f;
+
+    const float smx=shoulderX-nx*sh,smy=shoulderY-ny*sh;
+    const float spx=shoulderX+nx*sh,spy=shoulderY+ny*sh;
+    const float wmx=wristX-nx*wh,wmy=wristY-ny*wh;
+    const float wpx=wristX+nx*wh,wpy=wristY+ny*wh;
+
+    /* Front face. */
+    quadView(smx,smy,shoulderZ-thick*0.5f,
+             spx,spy,shoulderZ-thick*0.5f,
+             wpx,wpy,wristZ-thick*0.5f,
+             wmx,wmy,wristZ-thick*0.5f,color(57,70,88));
+
+    /* Outer thickness face. */
+    if(side<0)
+        quadView(spx,spy,shoulderZ-thick*0.5f,
+                 spx,spy,shoulderZ+thick*0.5f,
+                 wpx,wpy,wristZ+thick*0.5f,
+                 wpx,wpy,wristZ-thick*0.5f,color(36,47,63));
+    else
+        quadView(smx,smy,shoulderZ-thick*0.5f,
+                 smx,smy,shoulderZ+thick*0.5f,
+                 wmx,wmy,wristZ+thick*0.5f,
+                 wmx,wmy,wristZ-thick*0.5f,color(36,47,63));
+
+    /* Wrist cuff. */
+    quadView(wmx,wmy,wristZ-thick*0.5f,
+             wpx,wpy,wristZ-thick*0.5f,
+             wpx,wpy,wristZ+thick*0.5f,
+             wmx,wmy,wristZ+thick*0.5f,color(91,103,119));
+}
+
+static void drawHand(int side,float sway,float bob) {
+    const float hx=(float)side*0.46f+(float)side*sway*0.35f;
+    const float hy=-0.34f+bob;
+    const float hd=0.73f;
+
+    viewBox(hx,hy,hd,0.235f,0.18f,0.23f,
+            color(207,165,124),color(164,124,91),color(225,185,145),side);
+
+    /* Four short fingers and a thumb, all separate solid 3D pieces. */
+    for(int i=0;i<4;i++) {
+        const float fx=hx-0.075f+(float)i*0.050f;
+        viewBox(fx,hy-0.115f,0.67f,0.038f,0.085f,0.095f,
+                color(207,165,124),color(164,124,91),color(225,185,145),side);
     }
-    /* A few wall-mounted fluorescent boxes add depth cues and ambience. */
-    for(int i=2;i<38;i+=5) {
-        float z=start+(end-start)*(float)i/40.0f;
-        quad3(Vec3{L+0.025f,1.72f,z},Vec3{L+0.025f,2.25f,z},Vec3{L+0.025f,2.25f,z+0.12f},Vec3{L+0.025f,1.72f,z+0.12f},lamp);
-        quad3(Vec3{R-0.025f,2.25f,z+0.12f},Vec3{R-0.025f,1.72f,z+0.12f},Vec3{R-0.025f,1.72f,z},Vec3{R-0.025f,2.25f,z},lamp);
-    }
-    /* Back wall seam and dark skirting give the corridor a clear endpoint. */
-    quad3(Vec3{-0.06f,0.0f,end-0.02f},Vec3{0.06f,0.0f,end-0.02f},Vec3{0.06f,H,end-0.02f},Vec3{-0.06f,H,end-0.02f},dark);
+    viewBox(hx-(float)side*0.145f,hy-0.035f,0.72f,
+            0.075f,0.13f,0.12f,
+            color(207,165,124),color(164,124,91),color(225,185,145),side);
 }
 
 static void drawFirstPersonArms() {
-    float bob=(moveAmount>0.03f)?sinf(walkTime*10.0f):sinf(walkTime*2.0f)*0.12f;
-    float swing=(moveAmount>0.03f)?sinf(walkTime*10.0f)*12.0f:0.0f;
-    float baseY=(float)gs->Height*0.83f + bob*7.0f;
-    float leftX=(float)gs->Width*0.29f + swing;
-    float rightX=(float)gs->Width*0.71f - swing;
-    /* Sleeves / forearms are layered trapezoids, anchored to the screen bottom. */
-    quad2(leftX-44,baseY+80,leftX+10,baseY+80,leftX+27,baseY-26,leftX-10,baseY-42,rgba(55,66,79));
-    quad2(rightX-10,baseY-42,rightX+27,baseY-26,rightX+10,baseY+80,rightX-44,baseY+80,rgba(55,66,79));
-    quad2(leftX-10,baseY-42,leftX+27,baseY-26,leftX+20,baseY+20,leftX-20,baseY+30,rgba(188,145,105));
-    quad2(rightX-20,baseY+30,rightX+20,baseY+20,rightX+27,baseY-26,rightX-10,baseY-42,rgba(188,145,105));
-    /* Simple clenched hands, kept deliberately low so the corridor stays visible. */
-    quad2(leftX-22,baseY-25,leftX+18,baseY-25,leftX+22,baseY+3,leftX-18,baseY+7,rgba(207,165,124));
-    quad2(rightX-18,baseY+7,rightX+22,baseY+3,rightX+18,baseY-25,rightX-22,baseY-25,rgba(207,165,124));
+    const float moving=(moveAmount>0.035f)?1.0f:0.0f;
+    const float wave=sinf(walkPhase);
+    const float sway=wave*0.075f*moving;
+    const float bob=(moving>0.0f)?fabsf(sinf(walkPhase*2.0f))*0.035f:
+                    sinf(animTime*1.6f)*0.012f;
+
+    /* Farther sleeves first; hands and fingers are layered in front. */
+    drawArm(-1,sway,bob);
+    drawArm( 1,-sway,bob);
+    drawHand(-1,sway,bob);
+    drawHand( 1,-sway,bob);
 }
 
-static float axis(unsigned char raw,bool invert) {
+static float axisValue(unsigned char raw,bool invert) {
     float v=((float)raw-128.0f)/127.0f;
     if(invert) v=-v;
     if(v>-0.18f && v<0.18f) return 0.0f;
@@ -134,47 +414,74 @@ static float axis(unsigned char raw,bool invert) {
 }
 
 static void updatePad() {
-    if(padGetState(0,0)!=PAD_STATE_STABLE) { moveAmount=0; return; }
+    if(padGetState(0,0)!=PAD_STATE_STABLE) { moveAmount=0.0f; return; }
     padButtonStatus p;
-    if(padRead(0,0,&p)==0) { moveAmount=0; return; }
-    float forward=axis(p.ljoy_v,true), strafe=axis(p.ljoy_h,false);
-    if(forward==0) { if(!(p.btns&PAD_UP)) forward=1; else if(!(p.btns&PAD_DOWN)) forward=-1; }
-    if(strafe==0) { if(!(p.btns&PAD_RIGHT)) strafe=1; else if(!(p.btns&PAD_LEFT)) strafe=-1; }
+    if(padRead(0,0,&p)==0) { moveAmount=0.0f; return; }
+
+    float forward=axisValue(p.ljoy_v,true);
+    float strafe=axisValue(p.ljoy_h,false);
+    if(forward==0.0f) {
+        if(!(p.btns&PAD_UP)) forward=1.0f;
+        else if(!(p.btns&PAD_DOWN)) forward=-1.0f;
+    }
+    if(strafe==0.0f) {
+        if(!(p.btns&PAD_RIGHT)) strafe=1.0f;
+        else if(!(p.btns&PAD_LEFT)) strafe=-1.0f;
+    }
+
     float mag=sqrtf(forward*forward+strafe*strafe);
     moveAmount=mag;
-    if(mag>1) { forward/=mag; strafe/=mag; }
-    yaw += axis(p.rjoy_h,false)*0.035f;
-    pitch += axis(p.rjoy_v,true)*0.018f;
-    if(pitch>0.35f) pitch=0.35f;
-    if(pitch< -0.35f) pitch=-0.35f;
-    float speed=0.075f;
-    px += (sinf(yaw)*forward+cosf(yaw)*strafe)*speed;
-    pz += (cosf(yaw)*forward-sinf(yaw)*strafe)*speed;
-    if(px< -2.8f) px=-2.8f; if(px>2.8f) px=2.8f;
-    if(pz<0.0f) pz=0.0f; if(pz>76.0f) pz=76.0f;
+    if(mag>1.0f) { forward/=mag; strafe/=mag; mag=1.0f; }
+
+    yaw+=axisValue(p.rjoy_h,false)*0.035f;
+    pitch+=axisValue(p.rjoy_v,true)*0.018f;
+    if(pitch>0.32f) pitch=0.32f;
+    if(pitch< -0.32f) pitch=-0.32f;
+
+    const float speed=0.072f;
+    playerX+=(sinf(yaw)*forward+cosf(yaw)*strafe)*speed;
+    playerZ+=(cosf(yaw)*forward-sinf(yaw)*strafe)*speed;
+    if(playerX< -2.8f) playerX=-2.8f;
+    if(playerX>  2.8f) playerX= 2.8f;
+    if(playerZ<0.0f) playerZ=0.0f;
+    if(playerZ>ROOM_END-2.0f) playerZ=ROOM_END-2.0f;
+
+    if(mag>0.035f) walkPhase+=0.19f+mag*0.13f;
 }
 
 int main(int,char**) {
     gs=gsKit_init_global();
     if(!gs) for(;;) {}
-    gs->Mode=GS_MODE_NTSC; gs->Width=640; gs->Height=448;
-    gs->PSM=GS_PSM_CT32; gs->PSMZ=GS_PSMZ_16;
-    gs->ZBuffering=GS_SETTING_OFF; gs->PrimAlphaEnable=GS_SETTING_OFF;
-    dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,D_CTRL_STD_OFF,D_CTRL_RCYC_8,1<<DMA_CHANNEL_GIF);
+    gs->Mode=GS_MODE_NTSC;
+    gs->Width=640;
+    gs->Height=448;
+    gs->PSM=GS_PSM_CT32;
+    gs->PSMZ=GS_PSMZ_16;
+    gs->ZBuffering=GS_SETTING_OFF;
+    gs->PrimAlphaEnable=GS_SETTING_OFF;
+
+    dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
+                D_CTRL_STD_OFF,D_CTRL_RCYC_8,1<<DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
-    gsKit_init_screen(gs); gsKit_vram_clear(gs); gsKit_mode_switch(gs,GS_ONESHOT);
+    gsKit_init_screen(gs);
+    gsKit_vram_clear(gs);
+    gsKit_mode_switch(gs,GS_ONESHOT);
+
     padInit(0);
     if(padPortOpen(0,0,padBuffer)) {
         for(int i=0;i<120 && padGetState(0,0)!=PAD_STATE_STABLE;++i) {}
-        if(padGetState(0,0)==PAD_STATE_STABLE) padSetMainMode(0,0,PAD_MMODE_DUALSHOCK,PAD_MMODE_LOCK);
+        if(padGetState(0,0)==PAD_STATE_STABLE)
+            padSetMainMode(0,0,PAD_MMODE_DUALSHOCK,PAD_MMODE_LOCK);
     }
+
     for(;;) {
         updatePad();
-        gsKit_clear(gs,rgba(30,28,22));
+        gsKit_clear(gs,color(28,26,20));
         drawRoom();
         drawFirstPersonArms();
-        gsKit_queue_exec(gs); gsKit_sync_flip(gs);
-        walkTime+=1.0f/60.0f;
+        gsKit_queue_exec(gs);
+        gsKit_sync_flip(gs);
+        animTime+=1.0f/60.0f;
     }
     return 0;
 }
