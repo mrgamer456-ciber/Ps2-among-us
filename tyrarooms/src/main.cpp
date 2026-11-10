@@ -650,6 +650,26 @@ static void drawHud() {
     float staminaEnd=bx+(barW-2.0f)*(g_stamina/100.0f);
     if(staminaEnd>bx+1.0f) gsKit_prim_sprite(g_gs,bx+1,staminaY+22,staminaEnd,staminaY+29,4,
         GS_SETREG_RGBAQ(238,190,45,0x80,0));
+
+    /* DOORS-style inventory: eight empty slots in one straight horizontal row. */
+    const float slotSize=30.0f;
+    const float slotGap=5.0f;
+    const float totalWidth=slotSize*8.0f+slotGap*7.0f;
+    const float startX=(sw-totalWidth)*0.5f;
+    const float slotY=(float)g_gs->Height-48.0f;
+    for(int i=0;i<8;++i) {
+        const float x=startX+i*(slotSize+slotGap);
+        const bool selected=(i==0);
+        const u64 borderColor=selected
+            ? GS_SETREG_RGBAQ(225,205,135,0x80,0)
+            : GS_SETREG_RGBAQ(105,101,86,0x80,0);
+        const u64 fillColor=selected
+            ? GS_SETREG_RGBAQ(58,54,42,0x80,0)
+            : GS_SETREG_RGBAQ(28,27,24,0x80,0);
+        gsKit_prim_sprite(g_gs,x,slotY,x+slotSize,slotY+slotSize,1,borderColor);
+        gsKit_prim_sprite(g_gs,x+2.0f,slotY+2.0f,x+slotSize-2.0f,
+                          slotY+slotSize-2.0f,2,fillColor);
+    }
 }
 
 static void updateController() {
