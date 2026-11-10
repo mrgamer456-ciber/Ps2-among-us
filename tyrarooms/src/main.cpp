@@ -43,6 +43,12 @@ static bool g_running = false;
 static bool g_crouching = false;
 static bool g_previousL3 = false;
 static bool g_previousJump = false;
+static bool g_previousCircle = false;
+static bool g_playerDead = false;
+static float g_deathTimer = 0.0f;
+static float g_deathTilt = 0.0f;
+static float g_deathLimbFlop = 0.0f;
+static float g_deathX = 0.0f, g_deathZ = 0.0f, g_deathYaw = 0.0f;
 
 static GSGLOBAL *g_gs = 0;
 static GSTEXTURE g_wall, g_floor, g_ceiling, g_suit;
@@ -476,7 +482,10 @@ static void drawFirstPersonArm(float side, float swing, float bob) {
    Each part has its own UV rectangles: front, back, left, right, top, bottom. */
 static Vec3 playerLocalToWorld(const Vec3 &base, float yaw, const Vec3 &p) {
     const float c=cosf(yaw), sn=sinf(yaw);
-    return Vec3{base.x+p.x*c+p.z*sn, base.y+p.y, base.z-p.x*sn+p.z*c};
+    const float ct=cosf(g_deathTilt), st=sinf(g_deathTilt);
+    const float tiltedY=p.y*ct-p.z*st;
+    const float tiltedZ=p.y*st+p.z*ct;
+    return Vec3{base.x+p.x*c+tiltedZ*sn, base.y+tiltedY, base.z-p.x*sn+tiltedZ*c};
 }
 static void drawMinecraftCuboid(const Vec3 &base, float yaw, const Vec3 &center,
                                 float w, float h, float d,
@@ -537,7 +546,9 @@ static void drawMinecraftPlayerModel(float x, float feetY, float z, float yaw,
         {20,52,24,64},{28,52,32,64},{16,52,20,64},
         {24,52,28,64},{20,48,24,52},{24,48,28,52}
     };
-    const float step=sinf(walkPhase)*0.42f;
+    const float step=g_playerDead ? 0.0f : sinf(walkPhase)*0.42f;
+    const float armFlop=g_playerDead ? g_deathLimbFlop : 0.0f;
+    const float legFlop=g_playerDead ? -g_deathLimbFlop*0.55f : 0.0f;
     const Vec3 torsoPivot={0.0f,1.12f,0.0f};
     const Vec3 headPivot={0.0f,1.50f,0.0f};
     const Vec3 leftArmPivot={-0.375f,1.42f,0.0f};
@@ -547,15 +558,15 @@ static void drawMinecraftPlayerModel(float x, float feetY, float z, float yaw,
 
     /* Legs are drawn first, then torso, arms and head to keep the silhouette clear. */
     drawMinecraftCuboid(base,yaw,Vec3{-0.125f,0.375f,0},0.25f,0.75f,0.25f,
-                        leftLegUV,step,leftLegPivot);
+                        leftLegUV,step+legFlop,leftLegPivot);
     drawMinecraftCuboid(base,yaw,Vec3{0.125f,0.375f,0},0.25f,0.75f,0.25f,
-                        rightLegUV,-step,rightLegPivot);
+                        rightLegUV,-step-legFlop,rightLegPivot);
     drawMinecraftCuboid(base,yaw,Vec3{0,1.125f,0},0.50f,0.75f,0.25f,
                         torsoUV,noSwing,torsoPivot);
     drawMinecraftCuboid(base,yaw,Vec3{-0.375f,1.125f,0},0.25f,0.75f,0.25f,
-                        leftArmUV,-step,leftArmPivot);
+                        leftArmUV,-step-armFlop,leftArmPivot);
     drawMinecraftCuboid(base,yaw,Vec3{0.375f,1.125f,0},0.25f,0.75f,0.25f,
-                        rightArmUV,step,rightArmPivot);
+                        rightArmUV,step+armFlop,rightArmPivot);
     drawMinecraftCuboid(base,yaw,Vec3{0,1.50f,0},0.50f,0.50f,0.50f,
                         headUV,noSwing,headPivot);
     /* Hair/hat outer layer, slightly larger than the head. */
@@ -603,6 +614,19 @@ static void updateController() {
     padButtonStatus buttons;
     if(padRead(0,0,&buttons)==0) return;
     const unsigned short b=buttons.btns;
+    const bool circle=!(b & PAD_CIRCLE);
+    if(circle && !g_previousCircle && !g_playerDead) {
+        g_playerDead=true;
+        g_deathTimer=0.0f;
+        g_deathTilt=0.0f;
+        g_deathLimbFlop=0.0f;
+        g_deathX=g_camera.x;
+        g_deathZ=g_camera.z;
+        g_deathYaw=g_camera.yaw;
+        g_moveAmount=0.0f;
+    }
+    g_previousCircle=circle;
+    if(g_playerDead) return;
     const bool l3=!(b & PAD_L3);
     const bool jump=!(b & PAD_CROSS);
     if(l3 && !g_previousL3) g_crouching=!g_crouching;
@@ -662,6 +686,22 @@ static void updateController() {
     const float crouchOffset=g_crouching?0.52f:0.0f;
     g_camera.y=1.55f+g_jumpHeight-crouchOffset+walkBob;
 }
+static void updateDeathAnimation() {
+    if(!g_playerDead) return;
+    const float dt=1.0f/60.0f;
+    g_deathTimer+=dt;
+    const float t=(g_deathTimer<1.15f)?g_deathTimer/1.15f:1.0f;
+    const float ease=t*t*(3.0f-2.0f*t);
+    g_deathTilt=1.48f*ease;
+    g_deathLimbFlop=sinf(g_deathTimer*13.0f)*(1.0f-ease)*0.72f;
+    /* Third-person camera settles behind the body and looks slightly downward. */
+    g_camera.x=g_deathX-sinf(g_deathYaw)*3.2f;
+    g_camera.z=g_deathZ-cosf(g_deathYaw)*3.2f;
+    g_camera.y=1.55f;
+    g_camera.yaw=g_deathYaw;
+    g_cameraPitch=0.24f;
+}
+
 static bool initGraphicsAndLoadLevel() {
     g_gs=gsKit_init_global();
     if (!g_gs) return false;
@@ -719,9 +759,14 @@ int main(int,char **) {
     }
     for (;;) {
         updateController();
+        updateDeathAnimation();
         gsKit_clear(g_gs,GS_SETREG_RGBAQ(18,17,14,0x80,0));
         renderMaze();
-        drawFirstPersonArms();
+        if(g_playerDead) {
+            drawMinecraftPlayerModel(g_deathX,0.035f,g_deathZ,g_deathYaw,0.0f);
+        } else {
+            drawFirstPersonArms();
+        }
         g_animTime+=1.0f/60.0f;
         gsKit_queue_exec(g_gs);
         gsKit_sync_flip(g_gs);
