@@ -1,4 +1,4 @@
-name: Build Backrooms PS2
+name: Build Backrooms PS2 Maze
 
 on:
   workflow_dispatch:
@@ -41,13 +41,12 @@ jobs:
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           echo "PS2DEV=$PS2DEV"
           echo "PS2SDK=$PS2SDK"
-          echo "Checking PS2 compiler names used by the current PS2DEV toolchain:"
           command -v mips64r5900el-ps2-elf-gcc
           command -v mips64r5900el-ps2-elf-g++
           test -d "$PS2DEV"
           test -d "$PS2SDK"
 
-      - name: Configure and compile Backrooms
+      - name: Configure and compile Backrooms maze
         run: |
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           cmake -S tyrarooms -B tyrarooms/build \
@@ -58,9 +57,9 @@ jobs:
           test -s tyrarooms/build/backrooms.elf
           ls -lh tyrarooms/build/backrooms.elf
 
-      - name: Upload ELF
+      - name: Upload maze ELF
         uses: actions/upload-artifact@v4
         with:
-          name: backrooms-ps2-first-room
+          name: backrooms-ps2-maze
           path: tyrarooms/build/backrooms.elf
           if-no-files-found: error
