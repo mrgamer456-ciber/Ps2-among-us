@@ -65,15 +65,23 @@ jobs:
             -DCMAKE_ASM_COMPILER=mips64r5900el-ps2-elf-gcc
           cmake --build tyrarooms/build --parallel 2
           test -s tyrarooms/build/backrooms.elf
+          test -s tyrarooms/build/backrooms-nomenu.elf
           test -s tyrarooms/build/gs_diagnostic.elf
           test -s tyrarooms/build/gs_diagnostic_gameinit.elf
-          ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf
+          ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf
 
       - name: Upload maze ELF
         uses: actions/upload-artifact@v4
         with:
           name: backrooms-ps2-maze
           path: tyrarooms/build/backrooms.elf
+          if-no-files-found: error
+
+      - name: Upload direct-to-game ELF (no menu)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backrooms-ps2-no-menu
+          path: tyrarooms/build/backrooms-nomenu.elf
           if-no-files-found: error
 
       - name: Upload graphics diagnostic ELF
