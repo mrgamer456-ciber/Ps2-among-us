@@ -461,7 +461,18 @@ static void drawMenuPanel(float left, float top, float right, float bottom,
     gsKit_prim_sprite(g_gs, left + 3, top + 3, right - 3, bottom - 3, 3, fill);
 }
 
+static void begin2DOverlay() {
+    /* UI sprites use Z=1. Disable depth testing so old 3D depth values
+       cannot hide the menu background, panels, text, or HUD elements. */
+    gsKit_set_test(g_gs, GS_ZTEST_OFF);
+}
+
+static void end2DOverlay() {
+    gsKit_set_test(g_gs, GS_ZTEST_ON);
+}
+
 static void drawMainMenuScreen(int page, int selected) {
+    begin2DOverlay();
     const float sw = (float)g_gs->Width;
     const float sh = (float)g_gs->Height;
     gsKit_clear(g_gs, GS_SETREG_RGBAQ(5, 5, 4, 0x80, 0));
@@ -524,6 +535,7 @@ static void drawMainMenuScreen(int page, int selected) {
         drawPixelTextCentered(sw * 0.5f, sh * 0.84f, "O: VOLTAR", 1.6f,
             GS_SETREG_RGBAQ(255, 220, 145, 0x80, 0));
     }
+    end2DOverlay();
 }
 
 static void runMainMenu() {
@@ -584,6 +596,7 @@ static void runMainMenu() {
 
 static void drawLoadingScreen(const char *status, int progress) {
     if (!g_graphicsReady) return;
+    begin2DOverlay();
     if (progress < 0) progress = 0;
     if (progress > 100) progress = 100;
 
@@ -624,6 +637,7 @@ static void drawLoadingScreen(const char *status, int progress) {
 
     gsKit_queue_exec(g_gs);
     gsKit_sync_flip(g_gs);
+    end2DOverlay();
 }
 
 static bool validateMazeData() {
@@ -841,6 +855,7 @@ static float stickAxis(unsigned char raw, bool invert) {
 
 static void drawHud() {
     if (!g_graphicsReady) return;
+    begin2DOverlay();
     const float sw=(float)g_gs->Width;
     const float left=18.0f, top=18.0f, barW=142.0f, barH=10.0f;
     const float lifeY=42.0f, staminaY=76.0f;
@@ -916,6 +931,7 @@ static void drawHud() {
         gsKit_prim_sprite(g_gs,x+2.0f,slotY+2.0f,x+slotSize-2.0f,
                           slotY+slotSize-2.0f,2,fillColor);
     }
+    end2DOverlay();
 }
 
 static void respawnPlayer() {
