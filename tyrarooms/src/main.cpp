@@ -1078,8 +1078,8 @@ static bool initGraphicsAndLoadLevel() {
     g_gs->Width = 640;
     g_gs->Height = 448;
 
-    g_gs->PSM=GS_PSM_CT24;
-    g_gs->PSMZ=GS_PSMZ_24;
+    g_gs->PSM=GS_PSM_CT16;
+    g_gs->PSMZ=GS_PSMZ_16;
     g_gs->ZBuffering=GS_SETTING_ON;
     g_gs->PrimAlphaEnable=GS_SETTING_ON;
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
