@@ -69,3 +69,13 @@ target_include_directories(backrooms_rebuild_01 PRIVATE
     vendor/gsKit/ee/toolkit/include
 )
 target_link_libraries(backrooms_rebuild_01 PRIVATE gskit dmakit pad m)
+
+# Clean rebuild stage 02: one untextured 2D rectangle on the stage 01 base.
+add_executable(backrooms_rebuild_02 src/rebuild_02_one_rectangle.cpp)
+set_target_properties(backrooms_rebuild_02 PROPERTIES OUTPUT_NAME "backrooms-rebuild-02-one-rectangle" SUFFIX ".elf")
+target_include_directories(backrooms_rebuild_02 PRIVATE
+    vendor/gsKit/ee/gs/include
+    vendor/gsKit/ee/dma/include
+    vendor/gsKit/ee/toolkit/include
+)
+target_link_libraries(backrooms_rebuild_02 PRIVATE gskit dmakit pad m)
