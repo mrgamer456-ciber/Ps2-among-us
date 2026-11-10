@@ -1,0 +1,3 @@
+[submodule "tyrarooms/vendor/gsKit"]
+	path = tyrarooms/vendor/gsKit
+	url = https://github.com/ps2dev/gsKit.git
