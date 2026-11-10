@@ -6,6 +6,7 @@ on:
     paths:
       - "tools/preview_backrooms_textures.py"
       - "tools/generate_minecraft_skin_header.py"
+      - "tools/make_skin_background_transparent.py"
       - "tyrarooms/src/Skin maior.png"
       - ".github/workflows/preview-backrooms-textures.yml"
 
@@ -26,6 +27,7 @@ jobs:
         run: |
           python3 tools/preview_backrooms_textures.py
           python3 tools/generate_minecraft_skin_header.py
+          python3 tools/make_skin_background_transparent.py
 
       - name: Upload generated BMP files
         uses: actions/upload-artifact@v4
