@@ -1164,7 +1164,9 @@ int main(int,char **) {
     if (!initGraphicsAndLoadLevel()) {
         for (;;) { }
     }
+#ifndef BACKROOMS_SKIP_MENU
     runMainMenu();
+#endif
     for (;;) {
         updateController();
         updateDeathAnimation();
