@@ -32,6 +32,15 @@ static const char *g_map[MAP_H] = {
 
 struct Vec3 { float x, y, z; };
 struct Camera { float x, y, z, yaw; };
+static float g_cameraPitch = 0.0f;
+static float g_verticalVelocity = 0.0f;
+static float g_jumpHeight = 0.0f;
+static float g_moveAmount = 0.0f;
+static bool g_grounded = true;
+static bool g_running = false;
+static bool g_crouching = false;
+static bool g_previousL3 = false;
+static bool g_previousJump = false;
 
 static GSGLOBAL *g_gs = 0;
 static GSTEXTURE g_wall, g_floor, g_ceiling, g_suit;
@@ -115,11 +124,15 @@ static bool projectVertex(const Vec3 &p, float &sx, float &sy, int &sz) {
     const float s = sinf(g_camera.yaw);
     const float side = dx * c - dz * s;
     const float depth = dx * s + dz * c;
-    if (depth < 0.18f) return false;
+    const float cp = cosf(g_cameraPitch), sp = sinf(g_cameraPitch);
+    const float vertical = p.y - g_camera.y;
+    const float viewY = vertical * cp - depth * sp;
+    const float viewDepth = depth * cp + vertical * sp;
+    if (viewDepth < 0.18f) return false;
     const float focal = (float)g_gs->Width * 0.78f;
-    sx = (float)g_gs->Width * 0.5f + (side * focal / depth);
-    sy = (float)g_gs->Height * 0.5f - ((p.y - g_camera.y) * focal / depth);
-    sz = (int)(depth * 1800.0f);
+    sx = (float)g_gs->Width * 0.5f + (side * focal / viewDepth);
+    sy = (float)g_gs->Height * 0.5f - (viewY * focal / viewDepth);
+    sz = (int)(viewDepth * 1800.0f);
     if (sz < 1) sz = 1;
     return true;
 }
@@ -355,30 +368,53 @@ static void drawBoxPart(const Vec3 &pivot,const Vec3 &offset,
     drawQuad(texture,v[4],v[5],v[1],v[0],1,1);
 }
 
-static void drawYellowMaskedCharacter() {
-    const float walk=sinf(g_animTime*6.0f);
-    const float opposite=sinf(g_animTime*6.0f+3.14159265f);
-    const float bob=fabsf(walk)*0.045f;
-    const float z=4.7f, torsoY=1.48f+bob;
-    drawBoxPart(Vec3{-0.19f,0.91f+bob,z},Vec3{0,-0.39f,0},.34f,.82f,.38f,walk*.48f,&g_suit);
-    drawBoxPart(Vec3{0.19f,0.91f+bob,z},Vec3{0,-0.39f,0},.34f,.82f,.38f,opposite*.48f,&g_suit);
-    drawBoxPart(Vec3{0,torsoY,z},Vec3{0,0,0},.86f,.98f,.48f,0,&g_suit);
-    drawBoxPart(Vec3{-0.53f,1.86f+bob,z},Vec3{0,-.37f,0},.30f,.78f,.36f,opposite*.58f,&g_suit);
-    drawBoxPart(Vec3{0.53f,1.86f+bob,z},Vec3{0,-.37f,0},.30f,.78f,.36f,walk*.58f,&g_suit);
-    const Vec3 head={0,2.48f+bob,z};
-    drawBoxPart(head,Vec3{0,0,0},.66f,.66f,.62f,sinf(g_animTime*3)*.035f,&g_suit);
-    const float fz=z-.315f, fy=head.y-.04f;
-    drawSolidQuad(Vec3{-.23f,fy-.14f,fz},Vec3{.23f,fy-.14f,fz},
-                  Vec3{.23f,fy+.13f,fz},Vec3{-.23f,fy+.13f,fz},
-                  GS_SETREG_RGBAQ(38,43,42,0x80,0));
-    drawSolidQuad(Vec3{-.17f,fy+.015f,fz-.006f},Vec3{-.035f,fy+.015f,fz-.006f},
-                  Vec3{-.035f,fy+.085f,fz-.006f},Vec3{-.17f,fy+.085f,fz-.006f},
-                  GS_SETREG_RGBAQ(145,160,145,0x80,0));
-    drawSolidQuad(Vec3{.035f,fy+.015f,fz-.006f},Vec3{.17f,fy+.015f,fz-.006f},
-                  Vec3{.17f,fy+.085f,fz-.006f},Vec3{.035f,fy+.085f,fz-.006f},
-                  GS_SETREG_RGBAQ(145,160,145,0x80,0));
+static Vec3 viewToWorld(float x, float y, float z) {
+    const float rightX=cosf(g_camera.yaw), rightZ=-sinf(g_camera.yaw);
+    const float forwardX=sinf(g_camera.yaw), forwardZ=cosf(g_camera.yaw);
+    return Vec3{g_camera.x+rightX*x+forwardX*z,
+                g_camera.y+y,
+                g_camera.z+rightZ*x+forwardZ*z};
 }
 
+/* First-person sleeves: the arms stay attached to the camera like DOORS. */
+static void drawFirstPersonArm(float side, float swing, float bob) {
+    const float cx=side*0.34f;
+    const float cy=-0.37f+bob;
+    const float cz=0.60f;
+    const float hx=0.135f, hy=0.31f, hz=0.14f;
+    Vec3 v[8];
+    const float xs[8]={-hx,hx,hx,-hx,-hx,hx,hx,-hx};
+    const float ys[8]={-hy,-hy,hy,hy,-hy,-hy,hy,hy};
+    const float zs[8]={-hz,-hz,-hz,-hz,hz,hz,hz,hz};
+    const float c=cosf(swing), sn=sinf(swing);
+    for(int i=0;i<8;++i) {
+        const float ry=ys[i]*c-zs[i]*sn;
+        const float rz=ys[i]*sn+zs[i]*c;
+        v[i]=viewToWorld(cx+xs[i],cy+ry,cz+rz);
+    }
+    drawQuad(&g_suit,v[0],v[1],v[2],v[3],1,1);
+    drawQuad(&g_suit,v[5],v[4],v[7],v[6],1,1);
+    drawQuad(&g_suit,v[4],v[0],v[3],v[7],1,1);
+    drawQuad(&g_suit,v[1],v[5],v[6],v[2],1,1);
+    drawQuad(&g_suit,v[3],v[2],v[6],v[7],1,1);
+    drawQuad(&g_suit,v[4],v[5],v[1],v[0],1,1);
+}
+
+static void drawFirstPersonArms() {
+    float swing=0.0f;
+    float bob=0.0f;
+    if(g_moveAmount>0.08f) {
+        const float amplitude=g_running?0.34f:0.19f;
+        swing=sinf(g_animTime*(g_running?13.0f:8.5f))*amplitude;
+        bob=fabsf(sinf(g_animTime*(g_running?13.0f:8.5f)))*(g_running?0.035f:0.018f);
+    } else {
+        swing=sinf(g_animTime*1.8f)*0.018f;
+    }
+    if(g_crouching) swing*=0.55f;
+    if(!g_grounded) swing=-0.48f;
+    drawFirstPersonArm(-1.0f,swing,bob);
+    drawFirstPersonArm(1.0f,-swing,bob);
+}
 static bool canStand(float x,float z) {
     /* A short entry apron connects the starting position to the first maze tile. */
     if (z>=-2.2f && z<0.0f && fabsf(x)<1.25f) return true;
@@ -390,26 +426,79 @@ static bool canStand(float x,float z) {
     return fabsf(localX)<CELL*.39f && fabsf(localZ)<CELL*.39f;
 }
 
+static float stickAxis(unsigned char raw, bool invert) {
+    float v=((float)raw-128.0f)/127.0f;
+    if(invert) v=-v;
+    if(v>-0.18f && v<0.18f) return 0.0f;
+    if(v>0.0f) return (v-0.18f)/0.82f;
+    return (v+0.18f)/0.82f;
+}
+
 static void updateController() {
-    if (padGetState(0,0)!=PAD_STATE_STABLE) return;
+    static const float dt=1.0f/60.0f;
+    if(padGetState(0,0)!=PAD_STATE_STABLE) return;
     padButtonStatus buttons;
-    if (padRead(0,0,&buttons)==0) return;
+    if(padRead(0,0,&buttons)==0) return;
     const unsigned short b=buttons.btns;
-    const float turn=.035f, speed=.075f;
-    if (!(b & PAD_L1)) g_camera.yaw-=turn;
-    if (!(b & PAD_R1)) g_camera.yaw+=turn;
-    float forward=0.0f, strafe=0.0f;
-    if (!(b & PAD_UP)) forward+=speed;
-    if (!(b & PAD_DOWN)) forward-=speed;
-    if (!(b & PAD_RIGHT)) strafe+=speed;
-    if (!(b & PAD_LEFT)) strafe-=speed;
+    const bool l3=!(b & PAD_L3);
+    const bool jump=!(b & PAD_CROSS);
+    if(l3 && !g_previousL3) g_crouching=!g_crouching;
+    if(jump && !g_previousJump && g_grounded) {
+        g_verticalVelocity=4.8f;
+        g_grounded=false;
+    }
+    g_previousL3=l3;
+    g_previousJump=jump;
+    g_running=(!(b & PAD_R1) && !g_crouching);
+
+    /* Read the real DualShock 2 analog sticks, with a dead zone to stop drift. */
+    float forward=stickAxis(buttons.ljoy_v,true);
+    float strafe=stickAxis(buttons.ljoy_h,false);
+    const float lookX=stickAxis(buttons.rjoy_h,false);
+    const float lookY=stickAxis(buttons.rjoy_v,true);
+    g_camera.yaw += lookX*0.055f;
+    g_cameraPitch += lookY*0.035f;
+    if(g_cameraPitch>0.85f) g_cameraPitch=0.85f;
+    if(g_cameraPitch< -0.85f) g_cameraPitch=-0.85f;
+
+    /* Keep the D-pad as a backup, without overriding analog-stick input. */
+    if(forward==0.0f) {
+        if(!(b & PAD_UP)) forward=1.0f;
+        else if(!(b & PAD_DOWN)) forward=-1.0f;
+    }
+    if(strafe==0.0f) {
+        if(!(b & PAD_RIGHT)) strafe=1.0f;
+        else if(!(b & PAD_LEFT)) strafe=-1.0f;
+    }
+
+    const float inputMagnitude=sqrtf(forward*forward+strafe*strafe);
+    if(inputMagnitude>1.0f) { forward/=inputMagnitude; strafe/=inputMagnitude; }
+    g_moveAmount=inputMagnitude;
+    const float speed=g_crouching?0.035f:(g_running?0.145f:0.085f);
+    forward*=speed;
+    strafe*=speed;
     const float fx=sinf(g_camera.yaw), fz=cosf(g_camera.yaw);
     const float nx=g_camera.x+fx*forward+cosf(g_camera.yaw)*strafe;
     const float nz=g_camera.z+fz*forward-sinf(g_camera.yaw)*strafe;
-    if (canStand(nx,g_camera.z)) g_camera.x=nx;
-    if (canStand(g_camera.x,nz)) g_camera.z=nz;
-}
+    if(canStand(nx,g_camera.z)) g_camera.x=nx;
+    if(canStand(g_camera.x,nz)) g_camera.z=nz;
 
+    /* Real vertical jump arc: velocity, gravity and camera height all change. */
+    if(!g_grounded) {
+        g_verticalVelocity-=9.8f*dt;
+        g_jumpHeight+=g_verticalVelocity*dt;
+        if(g_jumpHeight<=0.0f) {
+            g_jumpHeight=0.0f;
+            g_verticalVelocity=0.0f;
+            g_grounded=true;
+        }
+    }
+    const float walkBob=(g_moveAmount>0.08f && g_grounded)
+        ? fabsf(sinf(g_animTime*(g_running?13.0f:8.5f)))*(g_running?0.045f:0.022f)
+        : 0.0f;
+    const float crouchOffset=g_crouching?0.52f:0.0f;
+    g_camera.y=1.55f+g_jumpHeight-crouchOffset+walkBob;
+}
 static bool initGraphicsAndLoadLevel() {
     g_gs=gsKit_init_global();
     if (!g_gs) return false;
@@ -464,7 +553,7 @@ int main(int,char **) {
         updateController();
         gsKit_clear(g_gs,GS_SETREG_RGBAQ(18,17,14,0x80,0));
         renderMaze();
-        drawYellowMaskedCharacter();
+        drawFirstPersonArms();
         g_animTime+=1.0f/60.0f;
         gsKit_queue_exec(g_gs);
         gsKit_sync_flip(g_gs);
