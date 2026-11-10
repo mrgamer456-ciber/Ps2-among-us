@@ -74,12 +74,31 @@ static bool makeTexture(GSTEXTURE *tex, int kind) {
             unsigned int n = noise(x, y, (unsigned int)(kind + 7));
             unsigned char r = 0, g = 0, b = 0;
             if (kind == 0) {
-                int seam = (x % 32 == 0) ? 9 : 0;
-                r = (unsigned char)(190 + n / 3 - seam);
-                g = (unsigned char)(174 + n / 3 - seam);
-                b = (unsigned char)(91 + n / 4 - seam);
-                if ((y % 32) == 0) { r -= 4; g -= 4; }
-            } else if (kind == 1) {
+                /*
+                 * Backrooms Level 0 wallpaper:
+                 * warm aged mustard paper, fine vertical paper grain,
+                 * faint repeating embossed pattern and irregular damp discoloration.
+                 * Keep all detail subtle so the 64x64 texture tiles cleanly.
+                 */
+                int grain = (int)n - 15;
+                int broad = (int)noise(x >> 3, y >> 3, 41) - 15;
+                int middle = (int)noise(x >> 1, y >> 2, 53) - 15;
+                int vertical = (x % 16 < 2) ? -3 : ((x % 16 > 13) ? 2 : 0);
+                int emboss = 0;
+                int mx = x % 16, my = y % 16;
+                if ((mx == 7 || mx == 8) && (my == 3 || my == 12)) emboss = -3;
+                if ((mx == 6 || mx == 9) && (my == 4 || my == 11)) emboss = 2;
+
+                /* Low-contrast brownish damp patches, never hard-edged. */
+                int damp = 0;
+                if (broad < -5 && y > 34) damp = -(((-broad - 5) * (int)(y - 33)) / 18);
+                int shade = grain / 2 + broad / 2 + middle / 3 + vertical + emboss + damp;
+                r = (unsigned char)(194 + shade);
+                g = (unsigned char)(177 + shade);
+                b = (unsigned char)(105 + shade / 2);
+                /* Slightly darker horizontal joins between wallpaper drops. */
+                if (y % 32 == 0) { r -= 4; g -= 4; b -= 2; }
+            }            } else if (kind == 1) {
                 int fleck = (n > 24) ? 9 : 0;
                 r = (unsigned char)(65 + n / 2 + fleck);
                 g = (unsigned char)(61 + n / 2 + fleck);
