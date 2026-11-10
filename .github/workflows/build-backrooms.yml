@@ -11,12 +11,22 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: h4570/tyra
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      TZ: America/Fortaleza
 
     steps:
-      - name: Install build tools
+      - name: Configure timezone without questions
         run: |
+          ln -snf /usr/share/zoneinfo/America/Fortaleza /etc/localtime
+          echo "America/Fortaleza" > /etc/timezone
+          dpkg-reconfigure -f noninteractive tzdata || true
+
+      - name: Install build tools without interactive prompts
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update
-          apt-get install -y git cmake make
+          apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" git cmake make
 
       - name: Configure Git safe directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
