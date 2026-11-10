@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Recreate the exact 64x64 procedural texture pixels used by tyrarooms/src/main.cpp.
+"""Recreate the exact Claude-era 128x128 wallpaper and 64x64 supporting textures.
 
 This is a preview/export tool only: it does not modify the PS2 game or its assets.
 Writes uncompressed 32-bit BMP files that can be opened on a phone or computer.
@@ -63,7 +63,7 @@ def pixel(kind, x, y, size=SIZE):
             k *= 0.80
         r = int(max(0, min(255, base_r * k + grain)))
         g = int(max(0, min(255, base_g * k + grain)))
-        b = int(max(0, min(255, base_b * k + grain))
+        b = int(max(0, min(255, base_b * k + grain)))
     elif kind == 1:  # carpet
         fleck = 9 if n > 24 else 0
         r, g, b = 65 + n // 2 + fleck, 61 + n // 2 + fleck, 43 + n // 3
