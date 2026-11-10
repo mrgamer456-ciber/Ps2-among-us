@@ -197,16 +197,29 @@ static bool projectVertex(const Vec3 &p, float &sx, float &sy, int &sz) {
     return true;
 }
 
+static void drawSolidQuad(const Vec3 &a, const Vec3 &b, const Vec3 &c,
+                          const Vec3 &d, u64 color);
+
 static void drawQuad(const GSTEXTURE *tex, const Vec3 &a, const Vec3 &b,
                      const Vec3 &c, const Vec3 &d, float tileU, float tileV) {
     float x1,y1,x2,y2,x3,y3,x4,y4;
     int z1,z2,z3,z4;
     if (!projectVertex(a,x1,y1,z1) || !projectVertex(b,x2,y2,z2) ||
         !projectVertex(c,x3,y3,z3) || !projectVertex(d,x4,y4,z4)) return;
+#ifdef BACKROOMS_SOLID_TEST
+    const u64 color = (tex == &g_wall)
+        ? GS_SETREG_RGBAQ(205,186,84,0x80,0)
+        : ((tex == &g_floor)
+            ? GS_SETREG_RGBAQ(65,61,43,0x80,0)
+            : GS_SETREG_RGBAQ(174,169,148,0x80,0));
+    drawSolidQuad(Vec3{a.x,a.y,a.z},Vec3{b.x,b.y,b.z},
+                  Vec3{c.x,c.y,c.z},Vec3{d.x,d.y,d.z},color);
+#else
     gsKit_prim_quad_texture_3d(g_gs, (GSTEXTURE *)tex,
         x1,y1,z1,0.0f,0.0f, x2,y2,z2,tileU,0.0f,
         x3,y3,z3,tileU,tileV, x4,y4,z4,0.0f,tileV,
         GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
+#endif
 }
 
 static void drawQuadUV(const GSTEXTURE *tex, const Vec3 &a, const Vec3 &b,
@@ -216,10 +229,16 @@ static void drawQuadUV(const GSTEXTURE *tex, const Vec3 &a, const Vec3 &b,
     int z1,z2,z3,z4;
     if (!projectVertex(a,x1,y1,z1) || !projectVertex(b,x2,y2,z2) ||
         !projectVertex(c,x3,y3,z3) || !projectVertex(d,x4,y4,z4)) return;
+#ifdef BACKROOMS_SOLID_TEST
+    drawSolidQuad(Vec3{a.x,a.y,a.z},Vec3{b.x,b.y,b.z},
+                  Vec3{c.x,c.y,c.z},Vec3{d.x,d.y,d.z},
+                  GS_SETREG_RGBAQ(120,170,210,0x80,0));
+#else
     gsKit_prim_quad_texture_3d(g_gs, (GSTEXTURE *)tex,
         x1,y1,z1,u0,v0, x2,y2,z2,u1,v0,
         x3,y3,z3,u1,v1, x4,y4,z4,u0,v1,
         GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
+#endif
 }
 
 static void drawSolidQuad(const Vec3 &a, const Vec3 &b, const Vec3 &c,
@@ -1130,6 +1149,7 @@ static bool initGraphicsAndLoadLevel() {
     g_graphicsReady = true;
     drawLoadingScreen("INICIANDO GRAFICOS",5);
 
+#ifndef BACKROOMS_SOLID_TEST
     drawLoadingScreen("CRIANDO TEXTURA DAS PAREDES",10);
     if (!makeTexture(&g_wall,0)) return false;
     drawLoadingScreen("TEXTURA DAS PAREDES CARREGADA",25);
@@ -1145,6 +1165,9 @@ static bool initGraphicsAndLoadLevel() {
     drawLoadingScreen("CRIANDO TEXTURA DO PERSONAGEM",70);
     if (!makeTexture(&g_suit,3)) return false;
     drawLoadingScreen("TEXTURA DO PERSONAGEM CARREGADA",85);
+#else
+    drawLoadingScreen("TESTE SEM TEXTURAS",85);
+#endif
 
     drawLoadingScreen("MONTANDO ROTAS DO LABIRINTO",90);
     if (!validateMazeData()) return false;
