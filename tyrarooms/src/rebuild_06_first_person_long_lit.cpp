@@ -32,7 +32,7 @@ static bool project(const Vec3 &p,float &sx,float &sy,int &sz) {
 static void quad3(const Vec3 &a,const Vec3 &b,const Vec3 &c,const Vec3 &d,u64 color) {
     float x1,y1,x2,y2,x3,y3,x4,y4; int z1,z2,z3,z4;
     if(!project(a,x1,y1,z1)||!project(b,x2,y2,z2)||
-       !project(c,x3,y3,z3)||!project(d,x4,y4)) return;
+       !project(c,x3,y3,z3)||!project(d,x4,y4,z4)) return;
     gsKit_prim_quad_3d(gs,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,color);
 }
 
