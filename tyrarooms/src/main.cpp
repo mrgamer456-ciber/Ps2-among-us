@@ -33,6 +33,7 @@ struct Camera { float x, y, z, yaw; };
 
 static GSGLOBAL *g_gs = 0;
 static GSTEXTURE g_wall, g_floor, g_ceiling, g_suit;
+static GSFONTM *g_loadingFont = 0;
 static Camera g_camera = { 0.0f, 1.55f, -1.35f, 0.0f };
 static float g_animTime = 0.0f;
 static unsigned char g_padBuffer[256] __attribute__((aligned(64)));
@@ -47,7 +48,7 @@ static unsigned int noise(unsigned int x, unsigned int y, unsigned int seed) {
     return (n ^ (n >> 16)) & 31u;
 }
 
-static void makeTexture(GSTEXTURE *tex, int kind) {
+static bool makeTexture(GSTEXTURE *tex, int kind) {
     memset(tex, 0, sizeof(GSTEXTURE));
     tex->Width = TEX_SIZE;
     tex->Height = TEX_SIZE;
@@ -55,7 +56,7 @@ static void makeTexture(GSTEXTURE *tex, int kind) {
     tex->PSM = GS_PSM_CT32;
     tex->Filter = GS_FILTER_LINEAR;
     tex->Mem = (u32 *)memalign(128, TEX_SIZE * TEX_SIZE * sizeof(u32));
-    if (!tex->Mem) return;
+    if (!tex->Mem) return false;
 
     for (unsigned int y = 0; y < TEX_SIZE; ++y) {
         for (unsigned int x = 0; x < TEX_SIZE; ++x) {
@@ -96,7 +97,13 @@ static void makeTexture(GSTEXTURE *tex, int kind) {
     tex->Vram = gsKit_vram_alloc(g_gs,
         gsKit_texture_size(tex->Width, tex->Height, tex->PSM),
         GSKIT_ALLOC_USERBUFFER);
+    if (tex->Vram == GSKIT_ALLOC_ERROR) {
+        free(tex->Mem);
+        tex->Mem = 0;
+        return false;
+    }
     gsKit_texture_upload(g_gs, tex);
+    return true;
 }
 
 static bool projectVertex(const Vec3 &p, float &sx, float &sy, int &sz) {
@@ -260,6 +267,65 @@ static void renderMaze() {
                  GS_SETREG_RGBAQ(35,130,54,0x80,0));
 }
 
+
+static void drawLoadingScreen(const char *status, int progress) {
+    if (!g_loadingFont) return;
+    if (progress < 0) progress = 0;
+    if (progress > 100) progress = 100;
+
+    const float screenW = (float)g_gs->Width;
+    const float screenH = (float)g_gs->Height;
+    const float barLeft = screenW * 0.16f;
+    const float barRight = screenW * 0.84f;
+    const float barTop = screenH * 0.84f;
+    const float barBottom = barTop + 15.0f;
+
+    gsKit_clear(g_gs, GS_SETREG_RGBAQ(12,11,9,0x80,0));
+    gsKit_prim_sprite(g_gs, 0, 0, screenW, screenH, 1,
+                      GS_SETREG_RGBAQ(12,11,9,0x80,0));
+
+    /* The status line is centered in the upper-middle of the screen. */
+    gsKit_fontm_print_scaled(g_gs, g_loadingFont,
+        screenW * 0.5f - 132.0f, screenH * 0.34f, 2, 0.72f,
+        GS_SETREG_RGBAQ(235,222,175,0x80,0), "BACKROOMS - LEVEL 0");
+    gsKit_fontm_print_scaled(g_gs, g_loadingFont,
+        screenW * 0.5f - 150.0f, screenH * 0.46f, 2, 0.62f,
+        GS_SETREG_RGBAQ(238,236,220,0x80,0), status);
+
+    /* Actual percentage-backed progress bar, updated after each load task. */
+    gsKit_prim_sprite(g_gs, barLeft-3.0f, barTop-3.0f,
+                      barRight+3.0f, barBottom+3.0f, 2,
+                      GS_SETREG_RGBAQ(105,96,67,0x80,0));
+    gsKit_prim_sprite(g_gs, barLeft, barTop, barRight, barBottom, 3,
+                      GS_SETREG_RGBAQ(35,33,27,0x80,0));
+    const float fillRight = barLeft + (barRight-barLeft) * ((float)progress/100.0f);
+    if (progress > 0) {
+        gsKit_prim_sprite(g_gs, barLeft+2.0f, barTop+2.0f,
+                          fillRight-2.0f, barBottom-2.0f, 4,
+                          GS_SETREG_RGBAQ(205,177,77,0x80,0));
+    }
+
+    char percent[12];
+    sprintf(percent, "%d%%", progress);
+    gsKit_fontm_print_scaled(g_gs, g_loadingFont,
+        screenW * 0.5f - 12.0f, barBottom + 13.0f, 2, 0.55f,
+        GS_SETREG_RGBAQ(230,224,202,0x80,0), percent);
+
+    gsKit_queue_exec(g_gs);
+    gsKit_sync_flip(g_gs);
+}
+
+static bool validateMazeData() {
+    int openTiles = 0;
+    for (int row=0; row<MAP_H; ++row) {
+        for (int col=0; col<MAP_W; ++col) {
+            if (isOpen(row,col)) ++openTiles;
+        }
+    }
+    /* Spawn and exit must both be inside walkable cells. */
+    return openTiles > 0 && isOpen(0,6) && isOpen(12,8);
+}
+
 static Vec3 rotateAroundX(const Vec3 &p,const Vec3 &pivot,float angle) {
     const float dy=p.y-pivot.y, dz=p.z-pivot.z;
     const float c=cosf(angle), sn=sinf(angle);
@@ -342,8 +408,9 @@ static void updateController() {
     if (canStand(g_camera.x,nz)) g_camera.z=nz;
 }
 
-static void initGraphics() {
+static bool initGraphicsAndLoadLevel() {
     g_gs=gsKit_init_global();
+    if (!g_gs) return false;
     g_gs->PSM=GS_PSM_CT24;
     g_gs->PSMZ=GS_PSMZ_24;
     g_gs->ZBuffering=GS_SETTING_ON;
@@ -356,16 +423,41 @@ static void initGraphics() {
     gsKit_set_test(g_gs,GS_ZTEST_ON);
     gsKit_set_clamp(g_gs,GS_CMODE_REPEAT);
     gsKit_mode_switch(g_gs,GS_ONESHOT);
-    makeTexture(&g_wall,0);
-    makeTexture(&g_floor,1);
-    makeTexture(&g_ceiling,2);
-    makeTexture(&g_suit,3);
+
+    g_loadingFont = gsKit_init_fontm();
+    if (!g_loadingFont) return false;
+    gsKit_fontm_upload(g_gs,g_loadingFont);
+    drawLoadingScreen("INICIANDO GRAFICOS",5);
+
+    drawLoadingScreen("CRIANDO TEXTURA DAS PAREDES",10);
+    if (!makeTexture(&g_wall,0)) return false;
+    drawLoadingScreen("TEXTURA DAS PAREDES CARREGADA",25);
+
+    drawLoadingScreen("CRIANDO TEXTURA DO CARPETE",30);
+    if (!makeTexture(&g_floor,1)) return false;
+    drawLoadingScreen("TEXTURA DO CARPETE CARREGADA",45);
+
+    drawLoadingScreen("CRIANDO TEXTURA DO TETO",50);
+    if (!makeTexture(&g_ceiling,2)) return false;
+    drawLoadingScreen("TEXTURA DO TETO CARREGADA",65);
+
+    drawLoadingScreen("CRIANDO TEXTURA DO PERSONAGEM",70);
+    if (!makeTexture(&g_suit,3)) return false;
+    drawLoadingScreen("TEXTURA DO PERSONAGEM CARREGADA",85);
+
+    drawLoadingScreen("MONTANDO ROTAS DO LABIRINTO",90);
+    if (!validateMazeData()) return false;
     padInit(0);
     padPortOpen(0,0,g_padBuffer);
+    drawLoadingScreen("FINALIZANDO CONTROLES",96);
+    drawLoadingScreen("CARREGAMENTO CONCLUIDO",100);
+    return true;
 }
 
 int main(int,char **) {
-    initGraphics();
+    if (!initGraphicsAndLoadLevel()) {
+        for (;;) { }
+    }
     for (;;) {
         updateController();
         gsKit_clear(g_gs,GS_SETREG_RGBAQ(18,17,14,0x80,0));
