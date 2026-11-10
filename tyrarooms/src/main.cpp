@@ -374,6 +374,54 @@ static void renderMaze() {
 }
 
 
+
+/* Unified 5x7 pixel font used by every on-screen text element. */
+static void drawPixelText(float x, float y, const char *text, float scale, u64 color) {
+    static const char alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-!:%.";
+    static const unsigned char glyphs[][7] = {
+        {14,17,17,31,17,17,17},{30,17,17,30,17,17,30},{14,17,16,16,16,17,14},
+        {30,17,17,17,17,17,30},{31,16,16,30,16,16,31},{31,16,16,30,16,16,16},
+        {14,17,16,23,17,17,15},{17,17,17,31,17,17,17},{14,4,4,4,4,4,14},
+        {7,2,2,2,18,18,12},{17,18,20,24,20,18,17},{16,16,16,16,16,16,31},
+        {17,27,21,21,17,17,17},{17,25,21,19,17,17,17},{14,17,17,17,17,17,14},
+        {30,17,17,30,16,16,16},{14,17,17,17,21,18,13},{30,17,17,30,20,18,17},
+        {15,16,16,14,1,1,30},{31,4,4,4,4,4,4},{17,17,17,17,17,17,14},
+        {17,17,17,17,17,10,4},{17,17,17,21,21,21,10},{17,17,10,4,10,17,17},
+        {17,17,10,4,4,4,4},{31,1,2,4,8,16,31},
+        {14,17,19,21,25,17,14},{4,12,4,4,4,4,14},{14,17,1,2,4,8,31},
+        {30,1,1,14,1,1,30},{2,6,10,18,31,2,2},{31,16,16,30,1,1,30},
+        {14,16,16,30,17,17,14},{31,1,2,4,8,8,8},{14,17,17,14,17,17,14},
+        {14,17,17,15,1,1,14},
+        {0,0,0,31,0,0,0},{4,4,4,4,4,0,4},{0,4,4,0,4,4,0},
+        {17,10,4,4,4,10,17},{0,0,0,0,0,0,31}
+    };
+    if (!text || scale <= 0.0f) return;
+    for (const char *p=text; *p; ++p) {
+        char ch=*p;
+        if (ch>='a' && ch<='z') ch=(char)(ch-'a'+'A');
+        const char *found=strchr(alphabet,ch);
+        if (found) {
+            const int index=(int)(found-alphabet);
+            for (int row=0; row<7; ++row) {
+                for (int col=0; col<5; ++col) {
+                    if (glyphs[index][row] & (1u << (4-col))) {
+                        const float px=x+(float)col*scale;
+                        const float py=y+(float)row*scale;
+                        gsKit_prim_sprite(g_gs,px,py,px+scale,py+scale,1,color);
+                    }
+                }
+            }
+        }
+        x += 6.0f*scale;
+    }
+}
+
+static void drawPixelTextCentered(float centerX, float y, const char *text,
+                                  float scale, u64 color) {
+    const float width=text ? (float)strlen(text)*6.0f*scale : 0.0f;
+    drawPixelText(centerX-width*0.5f,y,text,scale,color);
+}
+
 static void drawLoadingScreen(const char *status, int progress) {
     if (!g_loadingFont) return;
     if (progress < 0) progress = 0;
@@ -391,12 +439,10 @@ static void drawLoadingScreen(const char *status, int progress) {
                       GS_SETREG_RGBAQ(12,11,9,0x80,0));
 
     /* The status line is centered in the upper-middle of the screen. */
-    gsKit_fontm_print_scaled(g_gs, g_loadingFont,
-        screenW * 0.5f - 132.0f, screenH * 0.34f, 2, 0.72f,
-        GS_SETREG_RGBAQ(235,222,175,0x80,0), "BACKROOMS - LEVEL 0");
-    gsKit_fontm_print_scaled(g_gs, g_loadingFont,
-        screenW * 0.5f - 150.0f, screenH * 0.46f, 2, 0.62f,
-        GS_SETREG_RGBAQ(238,236,220,0x80,0), status);
+    drawPixelTextCentered(screenW*0.5f,screenH*0.34f,"BACKROOMS - LEVEL 0",2.0f,
+        GS_SETREG_RGBAQ(235,222,175,0x80,0));
+    drawPixelTextCentered(screenW*0.5f,screenH*0.46f,status,2.0f,
+        GS_SETREG_RGBAQ(238,236,220,0x80,0));
 
     /* Actual percentage-backed progress bar, updated after each load task. */
     gsKit_prim_sprite(g_gs, barLeft-3.0f, barTop-3.0f,
@@ -413,9 +459,8 @@ static void drawLoadingScreen(const char *status, int progress) {
 
     char percent[12];
     sprintf(percent, "%d%%", progress);
-    gsKit_fontm_print_scaled(g_gs, g_loadingFont,
-        screenW * 0.5f - 12.0f, barBottom + 13.0f, 2, 0.55f,
-        GS_SETREG_RGBAQ(230,224,202,0x80,0), percent);
+    drawPixelTextCentered(screenW*0.5f,barBottom+13.0f,percent,2.0f,
+        GS_SETREG_RGBAQ(230,224,202,0x80,0));
 
     gsKit_queue_exec(g_gs);
     gsKit_sync_flip(g_gs);
@@ -648,16 +693,16 @@ static void drawHud() {
     gsKit_prim_sprite(g_gs,left+5,top+7,left+17,top+19,1,lifeColor);
     gsKit_prim_sprite(g_gs,left,top+11,left+22,top+15,1,lifeColor);
     gsKit_prim_sprite(g_gs,left+9,top+2,left+13,top+24,1,lifeColor);
-    gsKit_fontm_print_scaled(g_gs,g_loadingFont,left+29,top+1,2,0.52f,
-        GS_SETREG_RGBAQ(240,240,225,0x80,0),"VIDA");
+    drawPixelText(left+29,top+1,"VIDA",2.0f,
+        GS_SETREG_RGBAQ(240,240,225,0x80,0));
 
     /* Stamina uses a small lightning-style mark and a yellow bar. */
     gsKit_prim_sprite(g_gs,left+2,staminaY+5,left+20,staminaY+9,1,
         GS_SETREG_RGBAQ(245,202,54,0x80,0));
     gsKit_prim_sprite(g_gs,left+10,staminaY,left+15,staminaY+17,1,
         GS_SETREG_RGBAQ(245,202,54,0x80,0));
-    gsKit_fontm_print_scaled(g_gs,g_loadingFont,left+29,staminaY-3,2,0.52f,
-        GS_SETREG_RGBAQ(240,240,225,0x80,0),"STAMINA");
+    drawPixelText(left+29,staminaY-3,"STAMINA",2.0f,
+        GS_SETREG_RGBAQ(240,240,225,0x80,0));
 
     const float bx=left+29.0f, ex=bx+barW;
     gsKit_prim_sprite(g_gs,bx-1,lifeY-1,ex+1,lifeY+barH+1,2,
@@ -676,15 +721,13 @@ static void drawHud() {
         GS_SETREG_RGBAQ(238,190,45,0x80,0));
 
     if(g_waterMessageTimer>0.0f) {
-        gsKit_fontm_print_scaled(g_gs,g_loadingFont,sw*0.5f-100.0f,112.0f,2,0.58f,
-            GS_SETREG_RGBAQ(110,220,245,0x80,0),
-            "AGUA! STAMINA RESTAURADA");
+        drawPixelTextCentered(sw*0.5f,112.0f,"AGUA! STAMINA RESTAURADA",2.0f,
+            GS_SETREG_RGBAQ(110,220,245,0x80,0));
     } else if(!g_waterCollected) {
         const float dx=g_camera.x-g_waterX, dz=g_camera.z-g_waterZ;
         if(dx*dx+dz*dz < 3.0f*3.0f) {
-            gsKit_fontm_print_scaled(g_gs,g_loadingFont,sw*0.5f-112.0f,112.0f,2,0.52f,
-                GS_SETREG_RGBAQ(180,225,235,0x80,0),
-                "AGUA: RECUPERA TODA A STAMINA");
+            drawPixelTextCentered(sw*0.5f,112.0f,"AGUA: RECUPERA TODA A STAMINA",2.0f,
+                GS_SETREG_RGBAQ(180,225,235,0x80,0));
         }
     }
 
