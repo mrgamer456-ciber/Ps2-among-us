@@ -15,6 +15,9 @@ def noise(x, y, seed):
     n = ((n ^ (n >> 13)) * 1274126177) & 0xFFFFFFFF
     return (n ^ (n >> 16)) & 31
 
+def cdiv(value, divisor):
+    return value // divisor if value >= 0 else -((-value) // divisor)
+
 def pixel(kind, x, y):
     n = noise(x, y, kind + 7)
     if kind == 0:  # Backrooms Level 0 aged yellow wallpaper
@@ -30,9 +33,9 @@ def pixel(kind, x, y):
             emboss = 2
         damp = 0
         if broad < -5 and y > 34:
-            damp = -(((-broad - 5) * (y - 33)) // 18)
-        shade = grain // 2 + broad // 2 + middle // 3 + vertical + emboss + damp
-        r, g, b = 194 + shade, 177 + shade, 105 + shade // 2
+            damp = -cdiv(((-broad - 5) * (y - 33)), 18)
+        shade = cdiv(grain, 2) + cdiv(broad, 2) + cdiv(middle, 3) + vertical + emboss + damp
+        r, g, b = 194 + shade, 177 + shade, 105 + cdiv(shade, 2)
         if y % 32 == 0:
             r -= 4
             g -= 4
