@@ -23,17 +23,15 @@ set_target_properties(backrooms PROPERTIES SUFFIX ".elf")
 add_executable(gs_diagnostic src/gs_diagnostic.cpp)
 set_target_properties(gs_diagnostic PROPERTIES SUFFIX ".elf")
 
-target_include_directories(backrooms PRIVATE
-    vendor/gsKit/ee/gs/include
-    vendor/gsKit/ee/dma/include
-    vendor/gsKit/ee/toolkit/include
-)
+# Second diagnostic reproduces the game's GS setup, but draws only blue.
+add_executable(gs_diagnostic_gameinit src/gs_diagnostic_gameinit.cpp)
+set_target_properties(gs_diagnostic_gameinit PROPERTIES SUFFIX ".elf")
 
-target_include_directories(gs_diagnostic PRIVATE
-    vendor/gsKit/ee/gs/include
-    vendor/gsKit/ee/dma/include
-    vendor/gsKit/ee/toolkit/include
-)
-
-target_link_libraries(backrooms PRIVATE gskit dmakit pad m)
-target_link_libraries(gs_diagnostic PRIVATE gskit dmakit pad m)
+foreach(target backrooms gs_diagnostic gs_diagnostic_gameinit)
+    target_include_directories(${target} PRIVATE
+        vendor/gsKit/ee/gs/include
+        vendor/gsKit/ee/dma/include
+        vendor/gsKit/ee/toolkit/include
+    )
+    target_link_libraries(${target} PRIVATE gskit dmakit pad m)
+endforeach()
