@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "tyrarooms/**"
+      - "tools/generate_menu_background.py"
       - "tools/generate_minecraft_skin_header.py"
       - ".github/workflows/build-backrooms.yml"
 
@@ -51,6 +52,9 @@ jobs:
 
       - name: Generate the Minecraft skin texture header
         run: python3 tools/generate_minecraft_skin_header.py
+
+      - name: Generate the menu background texture header
+        run: python3 tools/generate_menu_background.py
 
       - name: Configure and compile Backrooms maze
         run: |
