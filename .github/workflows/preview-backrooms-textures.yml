@@ -1,0 +1,25 @@
+name: Generate Backrooms texture previews
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate BMP previews from the game's texture formulas
+        run: python3 tools/preview_backrooms_textures.py
+
+      - name: Upload generated BMP files
+        uses: actions/upload-artifact@v4
+        with:
+          name: backrooms-textures-bmp
+          path: texture-previews/*.bmp
+          if-no-files-found: error
+          retention-days: 30
