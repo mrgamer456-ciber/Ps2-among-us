@@ -45,6 +45,8 @@ static bool g_previousL3 = false;
 static bool g_previousJump = false;
 static bool g_previousCircle = false;
 static bool g_playerDead = false;
+static float g_health = 100.0f;
+static float g_stamina = 100.0f;
 static float g_deathTimer = 0.0f;
 static float g_deathTilt = 0.0f;
 static float g_deathLimbFlop = 0.0f;
@@ -608,6 +610,48 @@ static float stickAxis(unsigned char raw, bool invert) {
     return (v+0.18f)/0.82f;
 }
 
+static void drawHud() {
+    if (!g_loadingFont) return;
+    const float sw=(float)g_gs->Width;
+    const float left=18.0f, top=18.0f, barW=142.0f, barH=10.0f;
+    const float lifeY=42.0f, staminaY=76.0f;
+
+    /* Health emblem: a clear green plus, turning red with critical health. */
+    const bool critical=(g_health<=25.0f);
+    const u64 lifeColor=critical
+        ? GS_SETREG_RGBAQ(220,42,35,0x80,0)
+        : GS_SETREG_RGBAQ(45,210,82,0x80,0);
+    gsKit_prim_sprite(g_gs,left+5,top+7,left+17,top+19,1,lifeColor);
+    gsKit_prim_sprite(g_gs,left,top+11,left+22,top+15,1,lifeColor);
+    gsKit_prim_sprite(g_gs,left+9,top+2,left+13,top+24,1,lifeColor);
+    gsKit_fontm_print_scaled(g_gs,g_loadingFont,left+29,top+1,2,0.52f,
+        GS_SETREG_RGBAQ(240,240,225,0x80,0),"VIDA");
+
+    /* Stamina uses a small lightning-style mark and a yellow bar. */
+    gsKit_prim_sprite(g_gs,left+2,staminaY+5,left+20,staminaY+9,1,
+        GS_SETREG_RGBAQ(245,202,54,0x80,0));
+    gsKit_prim_sprite(g_gs,left+10,staminaY,left+15,staminaY+17,1,
+        GS_SETREG_RGBAQ(245,202,54,0x80,0));
+    gsKit_fontm_print_scaled(g_gs,g_loadingFont,left+29,staminaY-3,2,0.52f,
+        GS_SETREG_RGBAQ(240,240,225,0x80,0),"STAMINA");
+
+    const float bx=left+29.0f, ex=bx+barW;
+    gsKit_prim_sprite(g_gs,bx-1,lifeY-1,ex+1,lifeY+barH+1,2,
+        GS_SETREG_RGBAQ(105,100,82,0x80,0));
+    gsKit_prim_sprite(g_gs,bx,lifeY,ex,lifeY+barH,3,
+        GS_SETREG_RGBAQ(32,31,27,0x80,0));
+    float lifeEnd=bx+(barW-2.0f)*(g_health/100.0f);
+    if(lifeEnd>bx+1.0f) gsKit_prim_sprite(g_gs,bx+1,lifeY+1,lifeEnd,lifeY+barH-1,4,lifeColor);
+
+    gsKit_prim_sprite(g_gs,bx-1,staminaY+20,ex+1,staminaY+20+barH+2,2,
+        GS_SETREG_RGBAQ(105,100,82,0x80,0));
+    gsKit_prim_sprite(g_gs,bx,staminaY+21,ex,staminaY+30,3,
+        GS_SETREG_RGBAQ(32,31,27,0x80,0));
+    float staminaEnd=bx+(barW-2.0f)*(g_stamina/100.0f);
+    if(staminaEnd>bx+1.0f) gsKit_prim_sprite(g_gs,bx+1,staminaY+22,staminaEnd,staminaY+29,4,
+        GS_SETREG_RGBAQ(238,190,45,0x80,0));
+}
+
 static void updateController() {
     static const float dt=1.0f/60.0f;
     if(padGetState(0,0)!=PAD_STATE_STABLE) return;
@@ -636,7 +680,7 @@ static void updateController() {
     }
     g_previousL3=l3;
     g_previousJump=jump;
-    g_running=(!(b & PAD_R1) && !g_crouching);
+    g_running=(!(b & PAD_R1) && !g_crouching && g_stamina>0.05f);
 
     /* Read the real DualShock 2 analog sticks, with a dead zone to stop drift. */
     float forward=stickAxis(buttons.ljoy_v,true);
@@ -661,6 +705,13 @@ static void updateController() {
     const float inputMagnitude=sqrtf(forward*forward+strafe*strafe);
     if(inputMagnitude>1.0f) { forward/=inputMagnitude; strafe/=inputMagnitude; }
     g_moveAmount=inputMagnitude;
+    if(g_running && inputMagnitude>0.08f) {
+        g_stamina-=22.0f*dt;
+        if(g_stamina<=0.0f) { g_stamina=0.0f; g_running=false; }
+    } else {
+        g_stamina+=16.0f*dt;
+        if(g_stamina>100.0f) g_stamina=100.0f;
+    }
     const float speed=g_crouching?0.035f:(g_running?0.145f:0.085f);
     forward*=speed;
     strafe*=speed;
@@ -767,6 +818,7 @@ int main(int,char **) {
         } else {
             drawFirstPersonArms();
         }
+        drawHud();
         g_animTime+=1.0f/60.0f;
         gsKit_queue_exec(g_gs);
         gsKit_sync_flip(g_gs);
