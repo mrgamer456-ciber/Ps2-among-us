@@ -36,3 +36,4 @@ target_include_directories(gs_diagnostic PRIVATE
 )
 
 target_link_libraries(backrooms PRIVATE gskit dmakit pad m)
+target_link_libraries(gs_diagnostic PRIVATE gskit dmakit pad m)
