@@ -73,9 +73,8 @@ jobs:
             test -s tyrarooms/build/backrooms-solid-test.elf
             test -s tyrarooms/build/backrooms-solid-reversed-z-test.elf
             test -s tyrarooms/build/gs_diagnostic.elf
-            test -s tyrarooms/build/gs_diagnostic_gameinit.elf tyrarooms/build/backrooms-isolamento-01.elf
             test -s tyrarooms/build/backrooms-isolamento-01.elf
-            ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/backrooms-solid-reversed-z-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf
+            ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/backrooms-solid-reversed-z-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf tyrarooms/build/backrooms-isolamento-01.elf
           } 2>&1 | tee tyrarooms/build/build.log
 
       - name: Upload build error log (only if build fails)
