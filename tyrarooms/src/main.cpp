@@ -562,12 +562,24 @@ static void runMainMenu() {
         gsKit_queue_exec(g_gs);
         gsKit_sync_flip(g_gs);
     }
-    /* Prevent the confirmation press from immediately affecting gameplay. */
-    for (int i = 0; i < 12; ++i) {
+    /* Finish the last menu frame before releasing its resources. */
+    for (int i = 0; i < 2; ++i) {
         gsKit_clear(g_gs, GS_SETREG_RGBAQ(5, 5, 4, 0x80, 0));
         gsKit_queue_exec(g_gs);
         gsKit_sync_flip(g_gs);
     }
+
+    /* The menu texture is the last VRAM allocation made by this program.
+       Rewind gsKit's allocation pointer to its start so the game can reuse it. */
+    dmaKit_wait_fast();
+    if (g_menuBackground.Mem) {
+        free(g_menuBackground.Mem);
+        g_menuBackground.Mem = 0;
+    }
+    if (g_menuBackground.Vram != GSKIT_ALLOC_ERROR) {
+        g_gs->CurrentPointer = g_menuBackground.Vram;
+    }
+    memset(&g_menuBackground, 0, sizeof(GSTEXTURE));
 }
 
 static void drawLoadingScreen(const char *status, int progress) {
