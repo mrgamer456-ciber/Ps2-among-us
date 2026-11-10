@@ -8,12 +8,12 @@ int main(int, char **) {
         for (;;) { }
     }
 
-    /* Match the Backrooms graphics configuration exactly. */
+    /* Match the Backrooms graphics configuration exactly, including 16-bit buffers. */
     gs->Mode = GS_MODE_NTSC;
     gs->Width = 640;
     gs->Height = 448;
-    gs->PSM = GS_PSM_CT24;
-    gs->PSMZ = GS_PSMZ_24;
+    gs->PSM = GS_PSM_CT16;
+    gs->PSMZ = GS_PSMZ_16;
     gs->ZBuffering = GS_SETTING_ON;
     gs->PrimAlphaEnable = GS_SETTING_ON;
 
