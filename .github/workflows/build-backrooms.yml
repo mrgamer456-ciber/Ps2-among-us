@@ -11,40 +11,38 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: h4570/tyra
-    env:
-      TZ: America/Fortaleza
-      DEBIAN_FRONTEND: noninteractive
+
     steps:
-      - name: Configure timezone without interactive prompts
-        run: |
-          ln -snf /usr/share/zoneinfo/America/Fortaleza /etc/localtime
-          echo "America/Fortaleza" > /etc/timezone
-          dpkg-reconfigure -f noninteractive tzdata || true
-          date
       - name: Install build tools
         run: |
           apt-get update
-          apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" git cmake make
+          apt-get install -y git cmake make
+
+      - name: Configure Git safe directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Checkout including gsKit
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
       - name: Check PS2SDK toolchain
         run: |
           echo "PS2DEV=$PS2DEV"
           command -v ee-gcc
           command -v ee-g++
           test -d "$PS2DEV"
+
       - name: Configure and compile Backrooms
         run: |
           cmake -S tyrarooms -B tyrarooms/build \
             -DCMAKE_C_COMPILER=ee-gcc \
             -DCMAKE_CXX_COMPILER=ee-g++ \
-            -DCMAKE_ASM_COMPILER=ee-gcc \
-            -DBUILD_EXAMPLES=
+            -DCMAKE_ASM_COMPILER=ee-gcc
           cmake --build tyrarooms/build --parallel 2
           test -s tyrarooms/build/backrooms.elf
           ls -lh tyrarooms/build/backrooms.elf
+
       - name: Upload ELF
         uses: actions/upload-artifact@v4
         with:
