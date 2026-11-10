@@ -427,26 +427,30 @@ static void drawPixelTextCentered(float centerX, float y, const char *text,
 
 static bool makeMenuBackgroundTexture() {
     memset(&g_menuBackground, 0, sizeof(GSTEXTURE));
-    g_menuBackground.Width = 512;
-    g_menuBackground.Height = 512;
-    g_menuBackground.TBW = 8;
-    /* CT16 halves the menu texture footprint, leaving VRAM for the level. */
-    g_menuBackground.PSM = GS_PSM_CT16;
+    /* Keep the background in the well-tested CT32 path, but at half
+       resolution to cut its VRAM use by 75% versus the original 512x512. */
+    g_menuBackground.Width = 256;
+    g_menuBackground.Height = 256;
+    g_menuBackground.TBW = 4;
+    g_menuBackground.PSM = GS_PSM_CT32;
     g_menuBackground.Filter = GS_FILTER_LINEAR;
-    g_menuBackground.Mem = (u32 *)memalign(128, 512 * 512 * sizeof(u16));
+    g_menuBackground.Mem = (u32 *)memalign(128, 256 * 256 * sizeof(u32));
     if (!g_menuBackground.Mem) return false;
 
-    u16 *pixels = (u16 *)g_menuBackground.Mem;
-    for (int i = 0; i < 512 * 512; ++i)
-        pixels[i] = 0x8000u;
-    for (int y = 0; y < 384; ++y) {
-        for (int x = 0; x < 512; ++x) {
-            const u32 source = menuBackgroundPixels[y * 512 + x];
-            const u16 red = (u16)(source & 0xFFu);
-            const u16 green = (u16)((source >> 8) & 0xFFu);
-            const u16 blue = (u16)((source >> 16) & 0xFFu);
-            pixels[y * 512 + x] = (u16)(0x8000u |
-                ((red >> 3) << 0) | ((green >> 3) << 5) | ((blue >> 3) << 10));
+    for (int y = 0; y < 256; ++y) {
+        for (int x = 0; x < 256; ++x) {
+            const u32 p0 = menuBackgroundPixels[(y * 2) * 512 + (x * 2)];
+            const u32 p1 = menuBackgroundPixels[(y * 2) * 512 + (x * 2 + 1)];
+            const u32 p2 = menuBackgroundPixels[(y * 2 + 1) * 512 + (x * 2)];
+            const u32 p3 = menuBackgroundPixels[(y * 2 + 1) * 512 + (x * 2 + 1)];
+            const u32 red = ((p0 & 255u) + (p1 & 255u) +
+                             (p2 & 255u) + (p3 & 255u)) >> 2;
+            const u32 green = (((p0 >> 8) & 255u) + ((p1 >> 8) & 255u) +
+                               ((p2 >> 8) & 255u) + ((p3 >> 8) & 255u)) >> 2;
+            const u32 blue = (((p0 >> 16) & 255u) + ((p1 >> 16) & 255u) +
+                              ((p2 >> 16) & 255u) + ((p3 >> 16) & 255u)) >> 2;
+            g_menuBackground.Mem[y * 256 + x] =
+                0x80000000u | red | (green << 8) | (blue << 16);
         }
     }
 
@@ -488,7 +492,7 @@ static void drawMainMenuScreen(int page, int selected) {
     const float sh = (float)g_gs->Height;
     gsKit_clear(g_gs, GS_SETREG_RGBAQ(5, 5, 4, 0x80, 0));
     gsKit_prim_sprite_texture(g_gs, &g_menuBackground,
-        0.0f, 0.0f, 0.0f, 0.0f, sw, sh, 512.0f, 384.0f,
+        0.0f, 0.0f, 0.0f, 0.0f, sw, sh, 256.0f, 192.0f,
         1, GS_SETREG_RGBAQ(0x80, 0x80, 0x80, 0x80, 0));
 
     /* A restrained dark overlay keeps the original BMP visible behind the menu. */
