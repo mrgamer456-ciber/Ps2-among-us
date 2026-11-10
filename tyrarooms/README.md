@@ -2,55 +2,50 @@
 
 Projeto de terror em primeira pessoa para PlayStation 2, desenvolvido em C/C++ com **PS2SDK + gsKit**, sem depender da engine Tyra.
 
-Esta pasta é independente do jogo Among Us e da antiga pasta `tyra`. Não alterar esses projetos ao trabalhar no Backrooms.
+Esta pasta é independente do jogo Among Us e da antiga pasta \`tyra\`. Não alterar esses projetos ao trabalhar no Backrooms.
 
-## Direção do jogo
+## Primeira implementação: sala 3D real
 
-- Exploração 3D em primeira pessoa.
-- Level 0: paredes amarelas, carpete úmido e teto com lâmpadas fluorescentes.
-- Salas e corredores com formatos variados.
-- Zumbido ambiente e efeitos sonoros.
-- Monstro com aparições e perseguições pontuais.
-- Objetivo de encontrar uma saída; sem armas.
+O primeiro protótipo já desenha uma sala formada por superfícies 3D independentes:
 
-## Base técnica
+- piso horizontal em geometria 3D;
+- paredes laterais e parede do fundo em geometria 3D;
+- teto em geometria 3D;
+- texturas procedurais em memória: papel de parede amarelo, carpete gasto e teto com painéis fluorescentes;
+- projeção em perspectiva e teste de profundidade do GS.
 
-- **PS2SDK**: compilação ELF, controle, memória, I/O e integração com hardware do PS2.
-- **gsKit**: interface C para o Graphics Synthesizer do PS2; será usada para renderização 2D/3D, texturas e apresentação da cena.
-- **gsKit oficial**: https://github.com/ps2dev/gsKit
-- Dependência fixada em `vendor/gsKit` como submódulo Git, apontando para o commit `8ef73d05f022d14b3ded7c70cba670fe333ed61a`.
+As texturas são geradas pelo próprio código nesta etapa, então não dependemos ainda de arquivos BMP externos. O piso não é uma imagem de fundo: é um quad 3D projetado com perspectiva.
 
-## Plano de desenvolvimento
+## Compilar pelo GitHub Actions
 
-1. Preparar e validar o ambiente PS2SDK + gsKit.
-2. Compilar um ELF mínimo que inicializa o gsKit e limpa a tela.
-3. Desenhar uma única sala 3D de teste.
-4. Adicionar câmera em primeira pessoa e controle.
-5. Aplicar texturas de parede, carpete e teto.
-6. Implementar áudio ambiente.
-7. Expandir o cenário e adicionar o monstro.
+1. Abra a aba **Actions** do repositório.
+2. Escolha **Build Backrooms PS2**.
+3. Toque em **Run workflow**.
+4. Quando terminar, baixe o artefato **backrooms-ps2-first-room**. Ele contém \`backrooms.elf\`.
 
-## Estrutura planejada
+O workflow inicializa o submódulo gsKit automaticamente.
 
-```
+## Estrutura
+
+\`\`\`
 tyrarooms/
+├── CMakeLists.txt
 ├── README.md
+├── src/
+│   └── main.cpp
 └── vendor/
     └── gsKit/   # submódulo oficial ps2dev/gsKit
-```
+\`\`\`
 
-## Clonagem
+## Próximas etapas
 
-Para baixar também o conteúdo do gsKit ao clonar o repositório:
+1. Validar a compilação do ELF.
+2. Adicionar controle analógico e câmera em primeira pessoa.
+3. Melhorar o mapeamento de texturas e a iluminação.
+4. Adicionar portas e móveis com geometria própria e colisão.
+5. Implementar personagem, animações, áudio e expansão procedural do mapa.
 
-```bash
-git clone --recurse-submodules https://github.com/mrgamer456-ciber/Ps2-among-us.git
-```
+## Dependência
 
-Se o repositório já estiver clonado:
-
-```bash
-git submodule update --init --recursive
-```
-
-O submódulo registra o código oficial do gsKit sem copiar nem modificar o projeto original dos mantenedores.
+- gsKit oficial: https://github.com/ps2dev/gsKit
+- Commit do submódulo: \`8ef73d05f022d14b3ded7c70cba670fe333ed61a\`
