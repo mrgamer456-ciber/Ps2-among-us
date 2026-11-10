@@ -25,7 +25,6 @@ jobs:
       - name: Install build tools without interactive prompts
         run: |
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update
           apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" git cmake make pkg-config
 
       - name: Configure Git safe directory
@@ -41,6 +40,8 @@ jobs:
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           echo "PS2DEV=$PS2DEV"
           echo "PS2SDK=$PS2SDK"
+          echo "PS2SDK pad library candidates:"
+          find "$PS2SDK/ee/lib" "$PS2DEV/ee/lib" -maxdepth 1 -name "libpad*" -print 2>/dev/null || true
           command -v mips64r5900el-ps2-elf-gcc
           command -v mips64r5900el-ps2-elf-g++
           test -d "$PS2DEV"
