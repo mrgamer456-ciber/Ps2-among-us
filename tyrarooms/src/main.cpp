@@ -1071,14 +1071,14 @@ static bool initGraphicsAndLoadLevel() {
     g_gs=gsKit_init_global();
     if (!g_gs) return false;
 
-    /* Force the standard NTSC mode before gsKit programs the GS registers.
-       The console's auto-detected mode was producing a split/shifted picture
-       on this PS2 setup. Keep the standard 640x448 NTSC framebuffer. */
+    /* Force standard NTSC timing. Keep a 32-bit color framebuffer for gsKit's
+       textured sprites and use a 16-bit Z buffer to preserve enough VRAM for
+       the level textures and the 512x512 menu background. */
     g_gs->Mode = GS_MODE_NTSC;
     g_gs->Width = 640;
     g_gs->Height = 448;
 
-    g_gs->PSM=GS_PSM_CT16;
+    g_gs->PSM=GS_PSM_CT32;
     g_gs->PSMZ=GS_PSMZ_16;
     g_gs->ZBuffering=GS_SETTING_ON;
     g_gs->PrimAlphaEnable=GS_SETTING_ON;
