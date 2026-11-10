@@ -157,6 +157,8 @@ static float cellX(int col) { return ((float)col - 6.0f) * CELL; }
 static float cellZ(int row) { return (float)row * CELL + CELL * 0.5f; }
 
 static void drawWallSegment(int row, int col, int side) {
+    /* Leave the south wall open at the final tile: this is the actual exit. */
+    if (row == 12 && col == 8 && side == 1) return;
     const float cx=cellX(col), cz=cellZ(row), h=ROOM_HEIGHT;
     const float half=CELL*0.5f;
     if (side==0) {
@@ -245,6 +247,17 @@ static void renderMaze() {
     drawFloorArrow(cellX(10),cellZ(8),2);
     drawFloorArrow(cellX(8),cellZ(10),3);
     drawFloorArrow(cellX(8),cellZ(11),2);
+
+    /* 3D exit frame and green marker beyond the last corridor tile. */
+    const float exitZ = cellZ(12) + CELL * 0.5f;
+    drawSolidBox(Vec3{cellX(8)-0.78f,1.50f,exitZ},0.16f,3.0f,0.16f,
+                 GS_SETREG_RGBAQ(90,83,61,0x80,0));
+    drawSolidBox(Vec3{cellX(8)+0.78f,1.50f,exitZ},0.16f,3.0f,0.16f,
+                 GS_SETREG_RGBAQ(90,83,61,0x80,0));
+    drawSolidBox(Vec3{cellX(8),2.94f,exitZ},1.70f,0.16f,0.16f,
+                 GS_SETREG_RGBAQ(90,83,61,0x80,0));
+    drawSolidBox(Vec3{cellX(8),2.66f,exitZ+0.02f},0.95f,0.34f,0.12f,
+                 GS_SETREG_RGBAQ(35,130,54,0x80,0));
 }
 
 static Vec3 rotateAroundX(const Vec3 &p,const Vec3 &pivot,float angle) {
