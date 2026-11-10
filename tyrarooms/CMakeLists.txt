@@ -11,6 +11,10 @@ include_directories(
     "$ENV{PS2SDK}/ee/include"
 )
 
+# The PS2SDK EE compiler normally supplies this define through its Makefiles.
+# Our CMake build must provide it explicitly so tamtypes.h defines u8/u16/u32/u64.
+add_compile_definitions(_EE)
+
 add_subdirectory(vendor/gsKit gskit-build)
 
 add_executable(backrooms src/main.cpp)
