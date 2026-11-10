@@ -880,7 +880,13 @@ static void drawHud() {
     if(staminaEnd>bx+1.0f) gsKit_prim_sprite(g_gs,bx+1,staminaY+22,staminaEnd,staminaY+29,4,
         GS_SETREG_RGBAQ(238,190,45,0x80,0));
 
-    if(g_waterMessageTimer>0.0f) {
+    if(g_playerDead) {
+        if(g_deathTimer>=1.15f) {
+            drawPixelTextCentered(sw*0.5f,(float)g_gs->Height*0.68f,
+                "CLIQUE X PARA RENASCER",2.0f,
+                GS_SETREG_RGBAQ(245,235,205,0x80,0));
+        }
+    } else if(g_waterMessageTimer>0.0f) {
         drawPixelTextCentered(sw*0.5f,112.0f,"AGUA! STAMINA RESTAURADA",2.0f,
             GS_SETREG_RGBAQ(110,220,245,0x80,0));
     } else if(!g_waterCollected) {
@@ -912,6 +918,30 @@ static void drawHud() {
     }
 }
 
+static void respawnPlayer() {
+    /* Return to the original safe starting point of Level 0. */
+    g_camera.x=0.0f;
+    g_camera.y=1.55f;
+    g_camera.z=-1.35f;
+    g_camera.yaw=0.0f;
+    g_cameraPitch=0.0f;
+
+    g_health=100.0f;
+    g_stamina=100.0f;
+    g_verticalVelocity=0.0f;
+    g_jumpHeight=0.0f;
+    g_grounded=true;
+    g_running=false;
+    g_crouching=false;
+    g_moveAmount=0.0f;
+    g_waterMessageTimer=0.0f;
+
+    g_deathTimer=0.0f;
+    g_deathTilt=0.0f;
+    g_deathLimbFlop=0.0f;
+    g_playerDead=false;
+}
+
 static void updateController() {
     static const float dt=1.0f/60.0f;
     if(padGetState(0,0)!=PAD_STATE_STABLE) return;
@@ -919,6 +949,8 @@ static void updateController() {
     if(padRead(0,0,&buttons)==0) return;
     const unsigned short b=buttons.btns;
     const bool circle=!(b & PAD_CIRCLE);
+    const bool jump=!(b & PAD_CROSS);
+
     if(circle && !g_previousCircle && !g_playerDead) {
         g_playerDead=true;
         g_health=0.0f;
@@ -931,9 +963,15 @@ static void updateController() {
         g_moveAmount=0.0f;
     }
     g_previousCircle=circle;
-    if(g_playerDead) return;
-    const bool l3=!(b & PAD_L3);
-    const bool jump=!(b & PAD_CROSS);
+
+    if(g_playerDead) {
+        /* X only works after the fall animation and only on a fresh press. */
+        if(g_deathTimer>=1.15f && jump && !g_previousJump) {
+            respawnPlayer();
+        }
+        g_previousJump=jump;
+        return;
+    }
     if(l3 && !g_previousL3) g_crouching=!g_crouching;
     if(jump && !g_previousJump && g_grounded) {
         g_verticalVelocity=4.8f;
