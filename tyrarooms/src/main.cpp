@@ -59,27 +59,72 @@ static unsigned int noise(unsigned int x, unsigned int y, unsigned int seed) {
     return (n ^ (n >> 16)) & 31u;
 }
 
+static uint32_t wallpaperHash(int x, int y, int seed) {
+    uint32_t h = (uint32_t)x * 374761393u + (uint32_t)y * 668265263u + (uint32_t)seed * 2147483647u;
+    h = (h ^ (h >> 13)) * 1274126177u;
+    return h ^ (h >> 16);
+}
+
+static float wallpaperNoise(float x, float y, int period, int seed) {
+    int x0 = (int)floorf(x), y0 = (int)floorf(y);
+    float fx = x - (float)x0, fy = y - (float)y0;
+    fx = fx * fx * (3.0f - 2.0f * fx);
+    fy = fy * fy * (3.0f - 2.0f * fy);
+    auto value = [&](int ix, int iy) {
+        int px = ((ix % period) + period) % period;
+        int py = ((iy % period) + period) % period;
+        return (float)(wallpaperHash(px, py, seed) & 0xFFFF) / 65535.0f;
+    };
+    float a = value(x0, y0), b = value(x0 + 1, y0);
+    float c = value(x0, y0 + 1), d = value(x0 + 1, y0 + 1);
+    return (a + (b - a) * fx) + ((c + (d - c) * fx) - (a + (b - a) * fx)) * fy;
+}
+
+static unsigned char clampTextureChannel(float v) {
+    return (unsigned char)(v < 0.0f ? 0.0f : (v > 255.0f ? 255.0f : v));
+}
+
 static bool makeTexture(GSTEXTURE *tex, int kind) {
+    const int texSize = (kind == 0) ? 128 : TEX_SIZE;
     memset(tex, 0, sizeof(GSTEXTURE));
-    tex->Width = TEX_SIZE;
-    tex->Height = TEX_SIZE;
-    tex->TBW = 1;
+    tex->Width = texSize;
+    tex->Height = texSize;
+    tex->TBW = (texSize + 63) / 64;
     tex->PSM = GS_PSM_CT32;
     tex->Filter = GS_FILTER_LINEAR;
-    tex->Mem = (u32 *)memalign(128, TEX_SIZE * TEX_SIZE * sizeof(u32));
+    tex->Mem = (u32 *)memalign(128, texSize * texSize * sizeof(u32));
     if (!tex->Mem) return false;
 
-    for (unsigned int y = 0; y < TEX_SIZE; ++y) {
-        for (unsigned int x = 0; x < TEX_SIZE; ++x) {
-            unsigned int n = noise(x, y, (unsigned int)(kind + 7));
+    for (int y = 0; y < texSize; ++y) {
+        for (int x = 0; x < texSize; ++x) {
+            unsigned int n = noise((unsigned int)x, (unsigned int)y, (unsigned int)(kind + 7));
             unsigned char r = 0, g = 0, b = 0;
             if (kind == 0) {
-                /* Original Backrooms Level 0 wallpaper texture. */
-                int seam = (x % 32 == 0) ? 9 : 0;
-                r = (unsigned char)(190 + n / 3 - seam);
-                g = (unsigned char)(174 + n / 3 - seam);
-                b = (unsigned char)(91 + n / 4 - seam);
-                if ((y % 32) == 0) { r -= 4; g -= 4; }
+                /* Exact Claude-era v0.3 Backrooms wallpaper from Backrooms-in-ps2/textures.cpp. */
+                const int cell = texSize / 4;
+                float fr = 205.0f, fg = 186.0f, fb = 84.0f;
+                float k = 1.0f;
+                int sx = x % cell;
+                if (sx < 4) k *= 0.86f;
+                else if (sx == 4) k *= 1.05f;
+                int row = y / cell, oy = y % cell;
+                int ox = (sx + (row & 1) * (cell / 2)) % cell;
+                int d = abs(ox - cell / 2) + abs(oy - cell / 2);
+                if (d < 7) k *= 0.90f;
+                else if (d == 7) k *= 0.96f;
+                float stain = wallpaperNoise((float)x * 8.0f / (float)texSize,
+                                             (float)y * 8.0f / (float)texSize, 8, 3);
+                k *= 0.86f + 0.14f * stain;
+                float grain = ((float)(wallpaperHash(x, y, 7) & 255) / 255.0f - 0.5f) * 10.0f;
+                if (y >= texSize - 10) {
+                    fr = 96.0f; fg = 74.0f; fb = 42.0f;
+                    k = (y == texSize - 10) ? 1.2f : 0.92f;
+                } else if (y < 4) {
+                    k *= 0.80f;
+                }
+                r = clampTextureChannel(fr * k + grain);
+                g = clampTextureChannel(fg * k + grain);
+                b = clampTextureChannel(fb * k + grain);
             } else if (kind == 1) {
                 int fleck = (n > 24) ? 9 : 0;
                 r = (unsigned char)(65 + n / 2 + fleck);
@@ -103,7 +148,7 @@ static bool makeTexture(GSTEXTURE *tex, int kind) {
                     b = (unsigned char)(43 + n / 5);
                 }
             }
-            tex->Mem[y * TEX_SIZE + x] = packColor(r, g, b);
+            tex->Mem[y * texSize + x] = packColor(r, g, b);
         }
     }
     tex->Vram = gsKit_vram_alloc(g_gs,
