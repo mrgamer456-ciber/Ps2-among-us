@@ -42,7 +42,11 @@ set_target_properties(gs_diagnostic PROPERTIES SUFFIX ".elf")
 add_executable(gs_diagnostic_gameinit src/gs_diagnostic_gameinit.cpp)
 set_target_properties(gs_diagnostic_gameinit PROPERTIES SUFFIX ".elf")
 
-foreach(target backrooms backrooms_nomenu backrooms_solid backrooms_solid_reversed_z gs_diagnostic gs_diagnostic_gameinit)
+# Isolated 2D-only GS test: no game renderer, textures, or 3D primitives.
+add_executable(gs_isolation_01 src/gs_isolation_01.cpp)
+set_target_properties(gs_isolation_01 PROPERTIES OUTPUT_NAME "backrooms-isolamento-01" SUFFIX ".elf")
+
+foreach(target backrooms backrooms_nomenu backrooms_solid backrooms_solid_reversed_z gs_diagnostic gs_diagnostic_gameinit gs_isolation_01)
     target_include_directories(${target} PRIVATE
         vendor/gsKit/ee/gs/include
         vendor/gsKit/ee/dma/include
