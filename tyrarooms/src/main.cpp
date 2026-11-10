@@ -430,15 +430,26 @@ static bool makeMenuBackgroundTexture() {
     g_menuBackground.Width = 512;
     g_menuBackground.Height = 512;
     g_menuBackground.TBW = 8;
-    g_menuBackground.PSM = GS_PSM_CT32;
+    /* CT16 halves the menu texture footprint, leaving VRAM for the level. */
+    g_menuBackground.PSM = GS_PSM_CT16;
     g_menuBackground.Filter = GS_FILTER_LINEAR;
-    g_menuBackground.Mem = (u32 *)memalign(128, 512 * 512 * sizeof(u32));
+    g_menuBackground.Mem = (u32 *)memalign(128, 512 * 512 * sizeof(u16));
     if (!g_menuBackground.Mem) return false;
+
+    u16 *pixels = (u16 *)g_menuBackground.Mem;
     for (int i = 0; i < 512 * 512; ++i)
-        g_menuBackground.Mem[i] = 0x80000000u;
-    for (int y = 0; y < 384; ++y)
-        for (int x = 0; x < 512; ++x)
-            g_menuBackground.Mem[y * 512 + x] = menuBackgroundPixels[y * 512 + x];
+        pixels[i] = 0x8000u;
+    for (int y = 0; y < 384; ++y) {
+        for (int x = 0; x < 512; ++x) {
+            const u32 source = menuBackgroundPixels[y * 512 + x];
+            const u16 red = (u16)(source & 0xFFu);
+            const u16 green = (u16)((source >> 8) & 0xFFu);
+            const u16 blue = (u16)((source >> 16) & 0xFFu);
+            pixels[y * 512 + x] = (u16)(0x8000u |
+                ((red >> 3) << 0) | ((green >> 3) << 5) | ((blue >> 3) << 10));
+        }
+    }
+
     g_menuBackground.Vram = gsKit_vram_alloc(g_gs,
         gsKit_texture_size(g_menuBackground.Width, g_menuBackground.Height,
                            g_menuBackground.PSM), GSKIT_ALLOC_USERBUFFER);
