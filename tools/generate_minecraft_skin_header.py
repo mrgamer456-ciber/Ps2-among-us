@@ -16,7 +16,7 @@ pixels = []
 for y in range(64):
     for x in range(64):
         r, g, b = skin.getpixel((x, y))
-        pixels.append(f"0x{r:02X}{g:02X}{b:02X}FFu")
+        pixels.append(f"0x80000000u | ((uint32_t){b}u << 16) | ((uint32_t){g}u << 8) | (uint32_t){r}u")
 rows = []
 for i in range(0, len(pixels), 8):
     rows.append("    " + ", ".join(pixels[i:i+8]))
