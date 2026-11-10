@@ -41,9 +41,9 @@ jobs:
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           echo "PS2DEV=$PS2DEV"
           echo "PS2SDK=$PS2SDK"
-          echo "Compiler paths:"
-          command -v ee-gcc
-          command -v ee-g++
+          echo "Checking PS2 compiler names used by the current PS2DEV toolchain:"
+          command -v mips64r5900el-ps2-elf-gcc
+          command -v mips64r5900el-ps2-elf-g++
           test -d "$PS2DEV"
           test -d "$PS2SDK"
 
@@ -51,9 +51,9 @@ jobs:
         run: |
           export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           cmake -S tyrarooms -B tyrarooms/build \
-            -DCMAKE_C_COMPILER=ee-gcc \
-            -DCMAKE_CXX_COMPILER=ee-g++ \
-            -DCMAKE_ASM_COMPILER=ee-gcc
+            -DCMAKE_C_COMPILER=mips64r5900el-ps2-elf-gcc \
+            -DCMAKE_CXX_COMPILER=mips64r5900el-ps2-elf-g++ \
+            -DCMAKE_ASM_COMPILER=mips64r5900el-ps2-elf-gcc
           cmake --build tyrarooms/build --parallel 2
           test -s tyrarooms/build/backrooms.elf
           ls -lh tyrarooms/build/backrooms.elf
