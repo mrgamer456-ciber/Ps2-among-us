@@ -11,7 +11,9 @@ O primeiro protótipo já desenha uma sala formada por superfícies 3D independe
 - piso horizontal em geometria 3D;
 - paredes laterais e parede do fundo em geometria 3D;
 - teto em geometria 3D;
-- texturas procedurais em memória: papel de parede amarelo, carpete gasto e teto com painéis fluorescentes;
+- texturas procedurais em memória: papel de parede amarelo, carpete gasto, teto com painéis fluorescentes e tecido amarelo separado para o personagem;
+- personagem de blocos 3D estilo Minecraft, com roupa amarela e máscara escura com duas lentes;
+- ciclo de caminhada animado: braços e pernas alternados, balanço do tronco e movimento sutil da cabeça;
 - projeção em perspectiva e teste de profundidade do GS.
 
 As texturas são geradas pelo próprio código nesta etapa, então não dependemos ainda de arquivos BMP externos. O piso não é uma imagem de fundo: é um quad 3D projetado com perspectiva.
