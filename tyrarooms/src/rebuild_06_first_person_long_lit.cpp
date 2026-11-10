@@ -101,60 +101,6 @@ static void viewBox(float x,float y,float depth,
     quadView(x0,y0,z0,x1,y0,z0,x1,y1,z0,x0,y1,z0,front);
 }
 
-/* A tapered 3D sleeve prism, angled from the shoulder toward the wrist. */
-static void drawArm(int side,float swing,float bob) {
-    const float sx=(float)side*0.82f+(float)side*swing*0.18f;
-    const float sy=-0.88f+bob;
-    const float sd=1.95f+(float)side*swing*0.10f;
-    const float wx=(float)side*0.48f+(float)side*swing*0.42f;
-    const float wy=-0.34f+bob+swing*0.08f;
-    const float wd=0.88f-(float)side*swing*0.08f;
-
-    float dx=wx-sx,dy=wy-sy;
-    float len=sqrtf(dx*dx+dy*dy);
-    if(len<0.01f) len=0.01f;
-    const float nx=-dy/len;
-    const float ny= dx/len;
-    const float outer=(side<0)?1.0f:-1.0f;
-    const float shoulderHalf=0.205f;
-    const float wristHalf=0.145f;
-    const float thick=0.19f;
-
-    const float smx=sx-nx*shoulderHalf;
-    const float smy=sy-ny*shoulderHalf;
-    const float spx=sx+nx*shoulderHalf;
-    const float spy=sy+ny*shoulderHalf;
-    const float wmx=wx-nx*wristHalf;
-    const float wmy=wy-ny*wristHalf;
-    const float wpx=wx+nx*wristHalf;
-    const float wpy=wy+ny*wristHalf;
-
-    /* Near/front face of sleeve. */
-    quadView(smx,smy,sd-thick*0.5f,
-             spx,spy,sd-thick*0.5f,
-             wpx,wpy,wd-thick*0.5f,
-             wmx,wmy,wd-thick*0.5f,color(57,70,88));
-
-    /* Outer sleeve face, giving the arm visible thickness. */
-    if(side<0) {
-        quadView(spx,spy,sd-thick*0.5f,
-                 spx,spy,sd+thick*0.5f,
-                 wpx,wpy,wd+thick*0.5f,
-                 wpx,wpy,wd-thick*0.5f,color(36,47,63));
-    } else {
-        quadView(smx,smy,sd-thick*0.5f,
-                 smx,smy,sd+thick*0.5f,
-                 wmx,wmy,wd+thick*0.5f,
-                 wmx,wmy,wd-thick*0.5f,color(36,47,63));
-    }
-
-    /* Small cuff seam close to the wrist. */
-    quadView(wx-nx*wristHalf,wy-ny*wristHalf,wd-thick*0.5f,
-             wx+nx*wristHalf,wy+ny*wristHalf,wd-thick*0.5f,
-             wx+nx*wristHalf,wy+ny*wristHalf,wd+thick*0.5f,
-             wx-nx*wristHalf,wy-ny*wristHalf,wd+thick*0.5f,color(91,103,119));
-}
-
 static int lampBoost(float z) {
     int nearest=(int)((z-6.0f)/12.0f+0.5f);
     const float lampZ=6.0f+(float)nearest*12.0f;
