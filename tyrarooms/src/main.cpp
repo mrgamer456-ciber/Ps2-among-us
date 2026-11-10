@@ -75,6 +75,16 @@ static void makeTexture(GSTEXTURE *tex, int kind) {
                     g = (unsigned char)(169 + n / 3);
                     b = (unsigned char)(145 + n / 3);
                 }
+            } else { // tecido amarelo da roupa, diferente do papel de parede
+                int seam = ((x % 32) < 2 || (y % 32) < 2) ? 10 : 0;
+                r = (unsigned char)(205 + n / 4 - seam);
+                g = (unsigned char)(174 + n / 4 - seam);
+                b = (unsigned char)(53 + n / 5 - seam / 2);
+                if (x > 42 && x < 59 && y > 36 && y < 57) {
+                    r = (unsigned char)(190 + n / 4);
+                    g = (unsigned char)(158 + n / 4);
+                    b = (unsigned char)(43 + n / 5);
+                }
             }
             tex->Mem[y * TEX_SIZE + x] = packColor(r, g, b);
         }
