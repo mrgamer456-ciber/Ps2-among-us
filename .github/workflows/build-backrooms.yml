@@ -157,3 +157,5 @@ jobs:
           name: backrooms-isolamento-01
           path: tyrarooms/build/backrooms-isolamento-01.elf
           if-no-files-found: error
+
+# Rebuild stage 02 artifact verification trigger.
