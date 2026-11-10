@@ -59,3 +59,13 @@ foreach(target backrooms backrooms_nomenu backrooms_solid backrooms_solid_revers
     )
     target_link_libraries(${target} PRIVATE gskit dmakit pad m)
 endforeach()
+
+# Clean rebuild stage 01: GS clear only, no menu or game renderer.
+add_executable(backrooms_rebuild_01 src/rebuild_01_clear_only.cpp)
+set_target_properties(backrooms_rebuild_01 PROPERTIES OUTPUT_NAME "backrooms-rebuild-01-clear-only" SUFFIX ".elf")
+target_include_directories(backrooms_rebuild_01 PRIVATE
+    vendor/gsKit/ee/gs/include
+    vendor/gsKit/ee/dma/include
+    vendor/gsKit/ee/toolkit/include
+)
+target_link_libraries(backrooms_rebuild_01 PRIVATE gskit dmakit pad m)
