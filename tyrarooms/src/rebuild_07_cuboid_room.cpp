@@ -51,6 +51,8 @@ static bool projectWorld(const Vec3 &p,float &sx,float &sy,int &sz) {
 }
 
 
+static void quadWorld(const Vec3 &a,const Vec3 &b,const Vec3 &c,const Vec3 &d,u64 col);
+
 static void cuboidWorld(float x0,float y0,float z0,float x1,float y1,float z1,u64 col) {
     const float cx=playerX,cy=1.62f,cz=playerZ;
     struct Face { Vec3 a,b,c,d; float nx,ny,nz; };
