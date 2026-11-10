@@ -950,6 +950,7 @@ static void updateController() {
     const unsigned short b=buttons.btns;
     const bool circle=!(b & PAD_CIRCLE);
     const bool jump=!(b & PAD_CROSS);
+    const bool l3=!(b & PAD_L3);
 
     if(circle && !g_previousCircle && !g_playerDead) {
         g_playerDead=true;
