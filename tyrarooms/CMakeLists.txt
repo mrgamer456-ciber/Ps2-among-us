@@ -24,6 +24,11 @@ add_executable(backrooms_nomenu src/main.cpp)
 target_compile_definitions(backrooms_nomenu PRIVATE BACKROOMS_SKIP_MENU=1)
 set_target_properties(backrooms_nomenu PROPERTIES OUTPUT_NAME "backrooms-nomenu" SUFFIX ".elf")
 
+# Diagnostic build: same maze geometry, but no texture allocation or sampling.
+add_executable(backrooms_solid src/main.cpp)
+target_compile_definitions(backrooms_solid PRIVATE BACKROOMS_SKIP_MENU=1 BACKROOMS_SOLID_TEST=1)
+set_target_properties(backrooms_solid PROPERTIES OUTPUT_NAME "backrooms-solid-test" SUFFIX ".elf")
+
 # Minimal graphics-only diagnostic: no game assets or 3D renderer.
 add_executable(gs_diagnostic src/gs_diagnostic.cpp)
 set_target_properties(gs_diagnostic PROPERTIES SUFFIX ".elf")
@@ -32,7 +37,7 @@ set_target_properties(gs_diagnostic PROPERTIES SUFFIX ".elf")
 add_executable(gs_diagnostic_gameinit src/gs_diagnostic_gameinit.cpp)
 set_target_properties(gs_diagnostic_gameinit PROPERTIES SUFFIX ".elf")
 
-foreach(target backrooms backrooms_nomenu gs_diagnostic gs_diagnostic_gameinit)
+foreach(target backrooms backrooms_nomenu backrooms_solid gs_diagnostic gs_diagnostic_gameinit)
     target_include_directories(${target} PRIVATE
         vendor/gsKit/ee/gs/include
         vendor/gsKit/ee/dma/include
