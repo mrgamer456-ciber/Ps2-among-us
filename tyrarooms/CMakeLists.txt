@@ -19,6 +19,10 @@ link_directories("$ENV{PS2SDK}/ee/lib")
 add_executable(backrooms src/main.cpp)
 set_target_properties(backrooms PROPERTIES SUFFIX ".elf")
 
+# Minimal graphics-only diagnostic: no game assets or 3D renderer.
+add_executable(gs_diagnostic src/gs_diagnostic.cpp)
+set_target_properties(gs_diagnostic PROPERTIES SUFFIX ".elf")
+
 target_include_directories(backrooms PRIVATE
     vendor/gsKit/ee/gs/include
     vendor/gsKit/ee/dma/include
