@@ -67,9 +67,10 @@ jobs:
           test -s tyrarooms/build/backrooms.elf
           test -s tyrarooms/build/backrooms-nomenu.elf
           test -s tyrarooms/build/backrooms-solid-test.elf
+          test -s tyrarooms/build/backrooms-solid-reversed-z-test.elf
           test -s tyrarooms/build/gs_diagnostic.elf
           test -s tyrarooms/build/gs_diagnostic_gameinit.elf
-          ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf
+          ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/backrooms-solid-reversed-z-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf
 
       - name: Upload maze ELF
         uses: actions/upload-artifact@v4
@@ -90,6 +91,13 @@ jobs:
         with:
           name: backrooms-ps2-solid-test
           path: tyrarooms/build/backrooms-solid-test.elf
+          if-no-files-found: error
+
+      - name: Upload reversed-Z solid diagnostic ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: backrooms-ps2-solid-reversed-z-test
+          path: tyrarooms/build/backrooms-solid-reversed-z-test.elf
           if-no-files-found: error
 
       - name: Upload graphics diagnostic ELF
