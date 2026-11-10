@@ -539,7 +539,12 @@ static bool initGraphicsAndLoadLevel() {
     drawLoadingScreen("MONTANDO ROTAS DO LABIRINTO",90);
     if (!validateMazeData()) return false;
     padInit(0);
-    padPortOpen(0,0,g_padBuffer);
+    if (padPortOpen(0,0,g_padBuffer)) {
+        /* Wait briefly for the DualShock 2, then explicitly enable both analog sticks. */
+        for (int wait=0; wait<120 && padGetState(0,0)!=PAD_STATE_STABLE; ++wait) { }
+        if (padGetState(0,0)==PAD_STATE_STABLE)
+            padSetMainMode(0,0,PAD_MMODE_DUALSHOCK,PAD_MMODE_LOCK);
+    }
     drawLoadingScreen("FINALIZANDO CONTROLES",96);
     drawLoadingScreen("CARREGAMENTO CONCLUIDO",100);
     return true;
