@@ -22,6 +22,7 @@ set_target_properties(backrooms PROPERTIES SUFFIX ".elf")
 target_include_directories(backrooms PRIVATE
     vendor/gsKit/ee/gs/include
     vendor/gsKit/ee/dma/include
+    vendor/gsKit/ee/toolkit/include
 )
 
 target_link_libraries(backrooms PRIVATE gskit dmakit pad m)
