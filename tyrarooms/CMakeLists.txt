@@ -109,3 +109,14 @@ target_include_directories(backrooms_rebuild_05 PRIVATE
     vendor/gsKit/ee/toolkit/include
 )
 target_link_libraries(backrooms_rebuild_05 PRIVATE gskit dmakit pad m)
+
+
+# Clean rebuild stage 06: first-person corridor, animated hands, long lit room.
+add_executable(backrooms_rebuild_06 src/rebuild_06_first_person_long_lit.cpp)
+set_target_properties(backrooms_rebuild_06 PROPERTIES OUTPUT_NAME "backrooms-rebuild-06-first-person-lit" SUFFIX ".elf")
+target_include_directories(backrooms_rebuild_06 PRIVATE
+    vendor/gsKit/ee/gs/include
+    vendor/gsKit/ee/dma/include
+    vendor/gsKit/ee/toolkit/include
+)
+target_link_libraries(backrooms_rebuild_06 PRIVATE gskit dmakit pad m)
