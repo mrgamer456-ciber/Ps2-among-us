@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <gsToolkit.h>
 #include "minecraft_skin.h"
+#include "menu_background.h"
 
 static const int TEX_SIZE = 64;
 static const int MAP_W = 13;
@@ -57,7 +58,8 @@ static float g_deathLimbFlop = 0.0f;
 static float g_deathX = 0.0f, g_deathZ = 0.0f, g_deathYaw = 0.0f;
 
 static GSGLOBAL *g_gs = 0;
-static GSTEXTURE g_wall, g_floor, g_ceiling, g_suit;
+static GSTEXTURE g_wall, g_floor, g_ceiling, g_suit, g_menuBackground;
+static int g_difficulty = 1; // 0=facil, 1=normal, 2=dificil
 static GSFONTM *g_loadingFont = 0;
 static Camera g_camera = { 0.0f, 1.55f, -1.35f, 0.0f };
 static float g_animTime = 0.0f;
@@ -420,6 +422,152 @@ static void drawPixelTextCentered(float centerX, float y, const char *text,
                                   float scale, u64 color) {
     const float width=text ? (float)strlen(text)*6.0f*scale : 0.0f;
     drawPixelText(centerX-width*0.5f,y,text,scale,color);
+}
+
+
+static bool makeMenuBackgroundTexture() {
+    memset(&g_menuBackground, 0, sizeof(GSTEXTURE));
+    g_menuBackground.Width = 512;
+    g_menuBackground.Height = 512;
+    g_menuBackground.TBW = 8;
+    g_menuBackground.PSM = GS_PSM_CT32;
+    g_menuBackground.Filter = GS_FILTER_LINEAR;
+    g_menuBackground.Mem = (u32 *)memalign(128, 512 * 512 * sizeof(u32));
+    if (!g_menuBackground.Mem) return false;
+    for (int i = 0; i < 512 * 512; ++i)
+        g_menuBackground.Mem[i] = 0x80000000u;
+    for (int y = 0; y < 384; ++y)
+        for (int x = 0; x < 512; ++x)
+            g_menuBackground.Mem[y * 512 + x] = menuBackgroundPixels[y * 512 + x];
+    g_menuBackground.Vram = gsKit_vram_alloc(g_gs,
+        gsKit_texture_size(g_menuBackground.Width, g_menuBackground.Height,
+                           g_menuBackground.PSM), GSKIT_ALLOC_USERBUFFER);
+    if (g_menuBackground.Vram == GSKIT_ALLOC_ERROR) {
+        free(g_menuBackground.Mem);
+        g_menuBackground.Mem = 0;
+        return false;
+    }
+    gsKit_texture_upload(g_gs, &g_menuBackground);
+    return true;
+}
+
+static void drawMenuPanel(float left, float top, float right, float bottom,
+                          bool selected) {
+    const u64 border = selected
+        ? GS_SETREG_RGBAQ(224, 194, 120, 0x80, 0)
+        : GS_SETREG_RGBAQ(130, 119, 91, 0x60, 0);
+    const u64 fill = GS_SETREG_RGBAQ(13, 12, 9, 0x70, 0);
+    gsKit_prim_sprite(g_gs, left, top, right, bottom, 2, border);
+    gsKit_prim_sprite(g_gs, left + 3, top + 3, right - 3, bottom - 3, 3, fill);
+}
+
+static void drawMainMenuScreen(int page, int selected) {
+    const float sw = (float)g_gs->Width;
+    const float sh = (float)g_gs->Height;
+    gsKit_clear(g_gs, GS_SETREG_RGBAQ(5, 5, 4, 0x80, 0));
+    gsKit_prim_sprite_texture(g_gs, &g_menuBackground,
+        0.0f, 0.0f, 0.0f, 0.0f, sw, sh, 512.0f, 384.0f,
+        1, GS_SETREG_RGBAQ(0x80, 0x80, 0x80, 0x80, 0));
+
+    /* A restrained dark overlay keeps the original BMP visible behind the menu. */
+    gsKit_prim_sprite(g_gs, sw * 0.27f, sh * 0.10f,
+                      sw * 0.73f, sh * 0.91f, 2,
+                      GS_SETREG_RGBAQ(8, 7, 5, 0x55, 0));
+
+    if (page == 0) {
+        drawPixelTextCentered(sw * 0.5f, sh * 0.20f, "BACKROOMS", 4.0f,
+            GS_SETREG_RGBAQ(245, 226, 171, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.31f, "LEVEL 0", 2.0f,
+            GS_SETREG_RGBAQ(225, 216, 190, 0x80, 0));
+        const char *items[] = {"INICIAR", "OPCOES", "CREDITOS"};
+        for (int i = 0; i < 3; ++i) {
+            const float y = sh * (0.45f + 0.15f * (float)i);
+            drawMenuPanel(sw * 0.36f, y - 7.0f, sw * 0.64f, y + 29.0f, i == selected);
+            if (i == selected)
+                drawPixelText(sw * 0.385f, y + 3.0f, ">", 3.0f,
+                    GS_SETREG_RGBAQ(255, 220, 130, 0x80, 0));
+            drawPixelTextCentered(sw * 0.5f, y + 3.0f, items[i], 2.5f,
+                i == selected ? GS_SETREG_RGBAQ(255, 239, 190, 0x80, 0)
+                              : GS_SETREG_RGBAQ(220, 216, 199, 0x80, 0));
+        }
+        drawPixelTextCentered(sw * 0.5f, sh * 0.84f, "D-PAD: MOVER  X: SELECIONAR", 1.35f,
+            GS_SETREG_RGBAQ(225, 218, 194, 0x80, 0));
+    } else if (page == 1) {
+        drawPixelTextCentered(sw * 0.5f, sh * 0.18f, "OPCOES", 3.5f,
+            GS_SETREG_RGBAQ(245, 226, 171, 0x80, 0));
+        drawMenuPanel(sw * 0.32f, sh * 0.34f, sw * 0.68f, sh * 0.51f, true);
+        drawPixelTextCentered(sw * 0.5f, sh * 0.38f, "DIFICULDADE", 2.0f,
+            GS_SETREG_RGBAQ(245, 239, 216, 0x80, 0));
+        const char *levels[] = {"FACIL", "NORMAL", "DIFICIL"};
+        drawPixelTextCentered(sw * 0.5f, sh * 0.45f, levels[g_difficulty], 2.2f,
+            GS_SETREG_RGBAQ(255, 215, 125, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.60f, "ESQUERDA / DIREITA: ALTERAR", 1.45f,
+            GS_SETREG_RGBAQ(230, 224, 205, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.69f, "ANALOGICO: MOVER E OLHAR", 1.45f,
+            GS_SETREG_RGBAQ(230, 224, 205, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.75f, "X: PULAR  L3: AGACHAR", 1.45f,
+            GS_SETREG_RGBAQ(230, 224, 205, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.86f, "O: VOLTAR", 1.6f,
+            GS_SETREG_RGBAQ(255, 220, 145, 0x80, 0));
+    } else {
+        drawPixelTextCentered(sw * 0.5f, sh * 0.18f, "CREDITOS", 3.5f,
+            GS_SETREG_RGBAQ(245, 226, 171, 0x80, 0));
+        drawMenuPanel(sw * 0.30f, sh * 0.32f, sw * 0.70f, sh * 0.72f, false);
+        drawPixelTextCentered(sw * 0.5f, sh * 0.40f, "PROJETO E DIRECAO", 1.8f,
+            GS_SETREG_RGBAQ(220, 211, 184, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.47f, "DAVI", 2.8f,
+            GS_SETREG_RGBAQ(255, 225, 150, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.56f, "PROGRAMACAO E APOIO", 1.8f,
+            GS_SETREG_RGBAQ(220, 211, 184, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.63f, "CHATGPT - OPENAI", 2.3f,
+            GS_SETREG_RGBAQ(255, 225, 150, 0x80, 0));
+        drawPixelTextCentered(sw * 0.5f, sh * 0.84f, "O: VOLTAR", 1.6f,
+            GS_SETREG_RGBAQ(255, 220, 145, 0x80, 0));
+    }
+}
+
+static void runMainMenu() {
+    if (!makeMenuBackgroundTexture()) return;
+    int page = 0;
+    int selected = 0;
+    bool prevUp = false, prevDown = false, prevLeft = false, prevRight = false;
+    bool prevCross = false, prevCircle = false;
+    for (;;) {
+        if (padGetState(0, 0) == PAD_STATE_STABLE) {
+            padButtonStatus buttons;
+            if (padRead(0, 0, &buttons) != 0) {
+                const unsigned short b = buttons.btns;
+                const bool up = !(b & PAD_UP), down = !(b & PAD_DOWN);
+                const bool left = !(b & PAD_LEFT), right = !(b & PAD_RIGHT);
+                const bool cross = !(b & PAD_CROSS), circle = !(b & PAD_CIRCLE);
+                if (page == 0) {
+                    if (up && !prevUp) selected = (selected + 2) % 3;
+                    if (down && !prevDown) selected = (selected + 1) % 3;
+                    if (cross && !prevCross) {
+                        if (selected == 0) break;
+                        page = selected == 1 ? 1 : 2;
+                    }
+                } else if (page == 1) {
+                    if (left && !prevLeft) g_difficulty = (g_difficulty + 2) % 3;
+                    if (right && !prevRight) g_difficulty = (g_difficulty + 1) % 3;
+                    if (circle && !prevCircle) page = 0;
+                } else if (circle && !prevCircle) {
+                    page = 0;
+                }
+                prevUp = up; prevDown = down; prevLeft = left; prevRight = right;
+                prevCross = cross; prevCircle = circle;
+            }
+        }
+        drawMainMenuScreen(page, selected);
+        gsKit_queue_exec(g_gs);
+        gsKit_sync_flip(g_gs);
+    }
+    /* Prevent the confirmation press from immediately affecting gameplay. */
+    for (int i = 0; i < 12; ++i) {
+        gsKit_clear(g_gs, GS_SETREG_RGBAQ(5, 5, 4, 0x80, 0));
+        gsKit_queue_exec(g_gs);
+        gsKit_sync_flip(g_gs);
+    }
 }
 
 static void drawLoadingScreen(const char *status, int progress) {
@@ -807,13 +955,16 @@ static void updateController() {
     if(inputMagnitude>1.0f) { forward/=inputMagnitude; strafe/=inputMagnitude; }
     g_moveAmount=inputMagnitude;
     if(g_running && inputMagnitude>0.08f) {
-        g_stamina-=22.0f*dt;
+        const float drain = (g_difficulty == 0) ? 16.0f : ((g_difficulty == 2) ? 29.0f : 22.0f);
+        g_stamina-=drain*dt;
         if(g_stamina<=0.0f) { g_stamina=0.0f; g_running=false; }
     } else {
-        g_stamina+=16.0f*dt;
+        const float recovery = (g_difficulty == 0) ? 20.0f : ((g_difficulty == 2) ? 12.0f : 16.0f);
+        g_stamina+=recovery*dt;
         if(g_stamina>100.0f) g_stamina=100.0f;
     }
-    const float speed=g_crouching?0.035f:(g_running?0.145f:0.085f);
+    const float difficultySpeed = (g_difficulty == 0) ? 1.08f : ((g_difficulty == 2) ? 0.92f : 1.0f);
+    const float speed=(g_crouching?0.035f:(g_running?0.145f:0.085f))*difficultySpeed;
     forward*=speed;
     strafe*=speed;
     const float fx=sinf(g_camera.yaw), fz=cosf(g_camera.yaw);
@@ -920,6 +1071,7 @@ int main(int,char **) {
     if (!initGraphicsAndLoadLevel()) {
         for (;;) { }
     }
+    runMainMenu();
     for (;;) {
         updateController();
         updateDeathAnimation();
