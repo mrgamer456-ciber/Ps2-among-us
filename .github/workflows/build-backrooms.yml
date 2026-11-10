@@ -38,13 +38,18 @@ jobs:
 
       - name: Check PS2SDK toolchain
         run: |
+          export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           echo "PS2DEV=$PS2DEV"
+          echo "PS2SDK=$PS2SDK"
+          echo "Compiler paths:"
           command -v ee-gcc
           command -v ee-g++
           test -d "$PS2DEV"
+          test -d "$PS2SDK"
 
       - name: Configure and compile Backrooms
         run: |
+          export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
           cmake -S tyrarooms -B tyrarooms/build \
             -DCMAKE_C_COMPILER=ee-gcc \
             -DCMAKE_CXX_COMPILER=ee-g++ \
