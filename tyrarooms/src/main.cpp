@@ -470,6 +470,99 @@ static void drawFirstPersonArm(float side, float swing, float bob) {
     }
 }
 
+
+/* Full classic Minecraft player model, using the 64x64 skin atlas.
+   Coordinates are relative to the player's feet; yaw turns the whole body.
+   Each part has its own UV rectangles: front, back, left, right, top, bottom. */
+static Vec3 playerLocalToWorld(const Vec3 &base, float yaw, const Vec3 &p) {
+    const float c=cosf(yaw), sn=sinf(yaw);
+    return Vec3{base.x+p.x*c+p.z*sn, base.y+p.y, base.z-p.x*sn+p.z*c};
+}
+static void drawMinecraftCuboid(const Vec3 &base, float yaw, const Vec3 &center,
+                                float w, float h, float d,
+                                const float uv[6][4], float swing,
+                                const Vec3 &pivot) {
+    const float x0=center.x-w*.5f, x1=center.x+w*.5f;
+    const float y0=center.y-h*.5f, y1=center.y+h*.5f;
+    const float z0=center.z-d*.5f, z1=center.z+d*.5f;
+    Vec3 v[8]={
+        {x0,y0,z0},{x1,y0,z0},{x1,y1,z0},{x0,y1,z0},
+        {x0,y0,z1},{x1,y0,z1},{x1,y1,z1},{x0,y1,z1}
+    };
+    const float c=cosf(swing), sn=sinf(swing);
+    for(int i=0;i<8;++i) {
+        const float dy=v[i].y-pivot.y, dz=v[i].z-pivot.z;
+        const float ry=pivot.y+dy*c-dz*sn;
+        const float rz=pivot.z+dy*sn+dz*c;
+        v[i]=playerLocalToWorld(base,yaw,Vec3{v[i].x,ry,rz});
+    }
+    const int face[6][4]={{0,1,2,3},{5,4,7,6},{4,0,3,7},
+                          {1,5,6,2},{3,2,6,7},{4,5,1,0}};
+    for(int f=0;f<6;++f) {
+        drawQuadUV(&g_suit,v[face[f][0]],v[face[f][1]],
+                   v[face[f][2]],v[face[f][3]],
+                   uv[f][0]/64.0f,uv[f][1]/64.0f,
+                   uv[f][2]/64.0f,uv[f][3]/64.0f);
+    }
+}
+static void drawMinecraftPlayerModel(float x, float feetY, float z, float yaw,
+                                     float walkPhase) {
+    const Vec3 base={x,feetY,z};
+    const float noSwing=0.0f;
+    const float headUV[6][4]={
+        {8,8,16,16},{24,8,32,16},{0,8,8,16},
+        {16,8,24,16},{8,0,16,8},{16,0,24,8}
+    };
+    const float hairUV[6][4]={
+        {40,8,48,16},{56,8,64,16},{32,8,40,16},
+        {48,8,56,16},{40,0,48,8},{48,0,56,8}
+    };
+    const float torsoUV[6][4]={
+        {20,20,28,32},{32,20,40,32},{16,20,20,32},
+        {28,20,32,32},{20,16,28,20},{28,16,36,20}
+    };
+    const float rightArmUV[6][4]={
+        {44,20,48,32},{52,20,56,32},{40,20,44,32},
+        {48,20,52,32},{44,16,48,20},{48,16,52,20}
+    };
+    const float leftArmUV[6][4]={
+        {36,52,40,64},{44,52,48,64},{32,52,36,64},
+        {40,52,44,64},{36,48,40,52},{40,48,44,52}
+    };
+    const float rightLegUV[6][4]={
+        {4,20,8,32},{12,20,16,32},{0,20,4,32},
+        {8,20,12,32},{4,16,8,20},{8,16,12,20}
+    };
+    const float leftLegUV[6][4]={
+        {20,52,24,64},{28,52,32,64},{16,52,20,64},
+        {24,52,28,64},{20,48,24,52},{24,48,28,52}
+    };
+    const float step=sinf(walkPhase)*0.42f;
+    const Vec3 torsoPivot={0.0f,1.12f,0.0f};
+    const Vec3 headPivot={0.0f,1.50f,0.0f};
+    const Vec3 leftArmPivot={-0.375f,1.42f,0.0f};
+    const Vec3 rightArmPivot={0.375f,1.42f,0.0f};
+    const Vec3 leftLegPivot={-0.125f,0.75f,0.0f};
+    const Vec3 rightLegPivot={0.125f,0.75f,0.0f};
+
+    /* Legs are drawn first, then torso, arms and head to keep the silhouette clear. */
+    drawMinecraftCuboid(base,yaw,Vec3{-0.125f,0.375f,0},0.25f,0.75f,0.25f,
+                        leftLegUV,step,leftLegPivot);
+    drawMinecraftCuboid(base,yaw,Vec3{0.125f,0.375f,0},0.25f,0.75f,0.25f,
+                        rightLegUV,-step,rightLegPivot);
+    drawMinecraftCuboid(base,yaw,Vec3{0,1.125f,0},0.50f,0.75f,0.25f,
+                        torsoUV,noSwing,torsoPivot);
+    drawMinecraftCuboid(base,yaw,Vec3{-0.375f,1.125f,0},0.25f,0.75f,0.25f,
+                        leftArmUV,-step,leftArmPivot);
+    drawMinecraftCuboid(base,yaw,Vec3{0.375f,1.125f,0},0.25f,0.75f,0.25f,
+                        rightArmUV,step,rightArmPivot);
+    drawMinecraftCuboid(base,yaw,Vec3{0,1.50f,0},0.50f,0.50f,0.50f,
+                        headUV,noSwing,headPivot);
+    /* Hair/hat outer layer, slightly larger than the head. */
+    drawMinecraftCuboid(base,yaw,Vec3{0,1.50f,0},0.515f,0.515f,0.515f,
+                        hairUV,noSwing,headPivot);
+}
+
 static void drawFirstPersonArms() {
     float swing=0.0f;
     float bob=0.0f;
