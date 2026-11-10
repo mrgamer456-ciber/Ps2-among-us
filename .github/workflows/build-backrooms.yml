@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "tyrarooms/**"
+      - "tools/generate_minecraft_skin_header.py"
       - ".github/workflows/build-backrooms.yml"
 
 jobs:
