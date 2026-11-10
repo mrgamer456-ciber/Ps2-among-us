@@ -80,7 +80,7 @@ jobs:
             test -s tyrarooms/build/backrooms-rebuild-03-untextured-room.elf
             test -s tyrarooms/build/backrooms-rebuild-04-untextured-player.elf
             test -s tyrarooms/build/backrooms-rebuild-05-deep-room-player.elf
-            test -s tyrarooms/build/backrooms-rebuild-06-first-person-lit-v2-v2.elf
+            test -s tyrarooms/build/backrooms-rebuild-06-first-person-lit-v2.elf
             ls -lh tyrarooms/build/backrooms-z24-repair-v1.elf tyrarooms/build/backrooms.elf tyrarooms/build/backrooms-nomenu.elf tyrarooms/build/backrooms-solid-test.elf tyrarooms/build/backrooms-solid-reversed-z-test.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf tyrarooms/build/backrooms-isolamento-01.elf
           } 2>&1 | tee tyrarooms/build/build.log
 
@@ -189,5 +189,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backrooms-rebuild-06-first-person-lit-v2
-          path: tyrarooms/build/backrooms-rebuild-06-first-person-lit-v2-v2.elf
+          path: tyrarooms/build/backrooms-rebuild-06-first-person-lit-v2.elf
           if-no-files-found: error
