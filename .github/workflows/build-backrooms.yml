@@ -11,14 +11,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: h4570/tyra
+    env:
+      TZ: America/Fortaleza
+      DEBIAN_FRONTEND: noninteractive
     steps:
+      - name: Configure timezone without interactive prompts
+        run: |
+          ln -snf /usr/share/zoneinfo/America/Fortaleza /etc/localtime
+          echo "America/Fortaleza" > /etc/timezone
+          dpkg-reconfigure -f noninteractive tzdata || true
+          date
       - name: Install build tools
-        env:
-          DEBIAN_FRONTEND: noninteractive
-          TZ: America/Fortaleza
         run: |
           apt-get update
-          apt-get install -y git cmake make
+          apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" git cmake make
       - name: Checkout including gsKit
         uses: actions/checkout@v4
         with:
