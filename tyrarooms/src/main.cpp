@@ -1085,8 +1085,11 @@ static bool initGraphicsAndLoadLevel() {
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
                 D_CTRL_STD_OFF,D_CTRL_RCYC_8,1<<DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
-    gsKit_vram_clear(g_gs);
+    /* Initialize the GS first so it allocates both framebuffers and the Z
+       buffer. Only then reset the texture allocator to TexturePointer;
+       doing this before init_screen uses an uninitialized texture base. */
     gsKit_init_screen(g_gs);
+    gsKit_vram_clear(g_gs);
     gsKit_set_test(g_gs,GS_ZTEST_ON);
     gsKit_set_clamp(g_gs,GS_CMODE_REPEAT);
     gsKit_mode_switch(g_gs,GS_ONESHOT);
