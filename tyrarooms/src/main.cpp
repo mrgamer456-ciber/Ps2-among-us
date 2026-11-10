@@ -661,6 +661,7 @@ static void updateController() {
     const bool circle=!(b & PAD_CIRCLE);
     if(circle && !g_previousCircle && !g_playerDead) {
         g_playerDead=true;
+        g_health=0.0f;
         g_deathTimer=0.0f;
         g_deathTilt=0.0f;
         g_deathLimbFlop=0.0f;
