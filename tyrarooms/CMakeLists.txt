@@ -34,6 +34,11 @@ add_executable(backrooms_solid_reversed_z src/main.cpp)
 target_compile_definitions(backrooms_solid_reversed_z PRIVATE BACKROOMS_SKIP_MENU=1 BACKROOMS_SOLID_TEST=1 BACKROOMS_REVERSED_Z_TEST=1)
 set_target_properties(backrooms_solid_reversed_z PROPERTIES OUTPUT_NAME "backrooms-solid-reversed-z-test" SUFFIX ".elf")
 
+# Full game build using a 24-bit reversed-Z buffer as a targeted graphics repair.
+add_executable(backrooms_z24_repair src/main.cpp)
+target_compile_definitions(backrooms_z24_repair PRIVATE BACKROOMS_Z24_REPAIR_V1=1)
+set_target_properties(backrooms_z24_repair PROPERTIES OUTPUT_NAME "backrooms-z24-repair-v1" SUFFIX ".elf")
+
 # Minimal graphics-only diagnostic: no game assets or 3D renderer.
 add_executable(gs_diagnostic src/gs_diagnostic.cpp)
 set_target_properties(gs_diagnostic PROPERTIES SUFFIX ".elf")
@@ -46,7 +51,7 @@ set_target_properties(gs_diagnostic_gameinit PROPERTIES SUFFIX ".elf")
 add_executable(gs_isolation_01 src/gs_isolation_01.cpp)
 set_target_properties(gs_isolation_01 PROPERTIES OUTPUT_NAME "backrooms-isolamento-01" SUFFIX ".elf")
 
-foreach(target backrooms backrooms_nomenu backrooms_solid backrooms_solid_reversed_z gs_diagnostic gs_diagnostic_gameinit gs_isolation_01)
+foreach(target backrooms backrooms_nomenu backrooms_solid backrooms_solid_reversed_z backrooms_z24_repair gs_diagnostic gs_diagnostic_gameinit gs_isolation_01)
     target_include_directories(${target} PRIVATE
         vendor/gsKit/ee/gs/include
         vendor/gsKit/ee/dma/include
