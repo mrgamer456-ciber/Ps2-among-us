@@ -451,13 +451,23 @@ static void drawFirstPersonArm(float side, float swing, float bob) {
         const float rz=ys[i]*sn+zs[i]*c;
         v[i]=viewToWorld(cx+xs[i],cy+ry,cz+rz);
     }
-    /* Minecraft classic 64x64 right-arm UV atlas, sampled without repainting. */
-    drawQuadUV(&g_suit,v[0],v[1],v[2],v[3],44.0f/64,20.0f/64,48.0f/64,32.0f/64); // front
-    drawQuadUV(&g_suit,v[5],v[4],v[7],v[6],52.0f/64,20.0f/64,56.0f/64,32.0f/64); // back
-    drawQuadUV(&g_suit,v[4],v[0],v[3],v[7],40.0f/64,20.0f/64,44.0f/64,32.0f/64); // left
-    drawQuadUV(&g_suit,v[1],v[5],v[6],v[2],48.0f/64,20.0f/64,52.0f/64,32.0f/64); // right
-    drawQuadUV(&g_suit,v[3],v[2],v[6],v[7],44.0f/64,16.0f/64,48.0f/64,20.0f/64); // top
-    drawQuadUV(&g_suit,v[4],v[5],v[1],v[0],48.0f/64,16.0f/64,52.0f/64,20.0f/64); // bottom
+    /* Use the matching classic 64x64 atlas region for each arm.
+       Right arm occupies x=40..56/y=16..32; left arm x=32..48/y=48..64. */
+    if (side < 0.0f) {
+        drawQuadUV(&g_suit,v[0],v[1],v[2],v[3],44.0f/64,20.0f/64,48.0f/64,32.0f/64); // right arm front
+        drawQuadUV(&g_suit,v[5],v[4],v[7],v[6],52.0f/64,20.0f/64,56.0f/64,32.0f/64); // back
+        drawQuadUV(&g_suit,v[4],v[0],v[3],v[7],40.0f/64,20.0f/64,44.0f/64,32.0f/64); // side
+        drawQuadUV(&g_suit,v[1],v[5],v[6],v[2],48.0f/64,20.0f/64,52.0f/64,32.0f/64); // side
+        drawQuadUV(&g_suit,v[3],v[2],v[6],v[7],44.0f/64,16.0f/64,48.0f/64,20.0f/64); // top
+        drawQuadUV(&g_suit,v[4],v[5],v[1],v[0],48.0f/64,16.0f/64,52.0f/64,20.0f/64); // bottom
+    } else {
+        drawQuadUV(&g_suit,v[0],v[1],v[2],v[3],36.0f/64,52.0f/64,40.0f/64,64.0f/64); // left arm front
+        drawQuadUV(&g_suit,v[5],v[4],v[7],v[6],44.0f/64,52.0f/64,48.0f/64,64.0f/64); // back
+        drawQuadUV(&g_suit,v[4],v[0],v[3],v[7],32.0f/64,52.0f/64,36.0f/64,64.0f/64); // side
+        drawQuadUV(&g_suit,v[1],v[5],v[6],v[2],40.0f/64,52.0f/64,44.0f/64,64.0f/64); // side
+        drawQuadUV(&g_suit,v[3],v[2],v[6],v[7],36.0f/64,48.0f/64,40.0f/64,52.0f/64); // top
+        drawQuadUV(&g_suit,v[4],v[5],v[1],v[0],40.0f/64,48.0f/64,44.0f/64,52.0f/64); // bottom
+    }
 }
 
 static void drawFirstPersonArms() {
