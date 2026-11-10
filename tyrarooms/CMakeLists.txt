@@ -13,6 +13,9 @@ add_compile_definitions(_EE)
 
 add_subdirectory(vendor/gsKit gskit-build)
 
+# PS2SDK EE system libraries (including libpad) live here in the toolchain image.
+link_directories("$ENV{PS2SDK}/ee/lib")
+
 add_executable(backrooms src/main.cpp)
 set_target_properties(backrooms PROPERTIES SUFFIX ".elf")
 
