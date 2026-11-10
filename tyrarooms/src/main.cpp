@@ -23,7 +23,8 @@ static GSGLOBAL *g_gs = 0;
 static GSTEXTURE g_wall;
 static GSTEXTURE g_floor;
 static GSTEXTURE g_ceiling;
-static Camera g_camera = { 0.0f, 1.62f, -2.0f, 0.0f };
+static Camera g_camera = { 0.0f, 1.55f, -2.0f, 0.0f };
+static float g_animTime = 0.0f;
 
 static uint32_t packColor(unsigned char r, unsigned char g, unsigned char b) {
     return (uint32_t)r | ((uint32_t)g << 8) | ((uint32_t)b << 16) | 0x80000000u;
@@ -159,6 +160,128 @@ static void renderRoom() {
         8.0f, 32.0f);
 }
 
+
+
+static void drawSolidQuad(const Vec3 &a, const Vec3 &b,
+                          const Vec3 &c, const Vec3 &d,
+                          u64 color) {
+    float x1, y1, x2, y2, x3, y3, x4, y4;
+    int z1, z2, z3, z4;
+    if (!projectVertex(a, x1, y1, z1) ||
+        !projectVertex(b, x2, y2, z2) ||
+        !projectVertex(c, x3, y3, z3) ||
+        !projectVertex(d, x4, y4, z4)) return;
+
+    gsKit_prim_quad_3d(g_gs,
+        x1, y1, z1, x2, y2, z2,
+        x3, y3, z3, x4, y4, z4, color);
+}
+
+static Vec3 rotateAroundX(const Vec3 &p, const Vec3 &pivot, float angle) {
+    const float dy = p.y - pivot.y;
+    const float dz = p.z - pivot.z;
+    const float c = cosf(angle);
+    const float sn = sinf(angle);
+    Vec3 out;
+    out.x = p.x;
+    out.y = pivot.y + dy * c - dz * sn;
+    out.z = pivot.z + dy * sn + dz * c;
+    return out;
+}
+
+static void drawBoxPart(const Vec3 &pivot, const Vec3 &centerOffset,
+                        float width, float height, float depth,
+                        float swing, const GSTEXTURE *texture) {
+    const Vec3 center = {
+        pivot.x + centerOffset.x,
+        pivot.y + centerOffset.y,
+        pivot.z + centerOffset.z
+    };
+    const float x0 = -width * 0.5f, x1 = width * 0.5f;
+    const float y0 = -height * 0.5f, y1 = height * 0.5f;
+    const float z0 = -depth * 0.5f, z1 = depth * 0.5f;
+
+    Vec3 v[8] = {
+        {center.x+x0, center.y+y0, center.z+z0},
+        {center.x+x1, center.y+y0, center.z+z0},
+        {center.x+x1, center.y+y1, center.z+z0},
+        {center.x+x0, center.y+y1, center.z+z0},
+        {center.x+x0, center.y+y0, center.z+z1},
+        {center.x+x1, center.y+y0, center.z+z1},
+        {center.x+x1, center.y+y1, center.z+z1},
+        {center.x+x0, center.y+y1, center.z+z1}
+    };
+
+    for (int i = 0; i < 8; ++i)
+        v[i] = rotateAroundX(v[i], pivot, swing);
+
+    const float repeatU = 1.0f;
+    const float repeatV = 1.0f;
+    drawQuad(texture, v[0], v[1], v[2], v[3], repeatU, repeatV); // frente
+    drawQuad(texture, v[5], v[4], v[7], v[6], repeatU, repeatV); // costas
+    drawQuad(texture, v[4], v[0], v[3], v[7], repeatU, repeatV); // esquerda
+    drawQuad(texture, v[1], v[5], v[6], v[2], repeatU, repeatV); // direita
+    drawQuad(texture, v[3], v[2], v[6], v[7], repeatU, repeatV); // topo
+    drawQuad(texture, v[4], v[5], v[1], v[0], repeatU, repeatV); // base
+}
+
+static void drawYellowMaskedCharacter() {
+    // O boneco é montado com blocos 3D independentes, estilo Minecraft.
+    // A animação usa balanço alternado de braços/pernas e oscilação do tronco.
+    const float walk = sinf(g_animTime * 6.0f);
+    const float opposite = sinf(g_animTime * 6.0f + 3.14159265f);
+    const float bodyBob = fabsf(sinf(g_animTime * 6.0f)) * 0.045f;
+    const float torsoY = 1.48f + bodyBob;
+    const float charZ = 4.7f;
+
+    // Pernas articuladas no quadril.
+    const Vec3 leftHip = {-0.19f, 0.91f + bodyBob, charZ};
+    const Vec3 rightHip = {0.19f, 0.91f + bodyBob, charZ};
+    drawBoxPart(leftHip, Vec3{0.0f, -0.39f, 0.0f},
+                0.34f, 0.82f, 0.38f, walk * 0.48f, &g_wall);
+    drawBoxPart(rightHip, Vec3{0.0f, -0.39f, 0.0f},
+                0.34f, 0.82f, 0.38f, opposite * 0.48f, &g_wall);
+
+    // Tronco quadrado com roupa amarela.
+    drawBoxPart(Vec3{0.0f, torsoY, charZ}, Vec3{0.0f, 0.0f, 0.0f},
+                0.86f, 0.98f, 0.48f, 0.0f, &g_wall);
+
+    // Braços pendurados nos ombros, em oposição às pernas.
+    const Vec3 leftShoulder = {-0.53f, 1.86f + bodyBob, charZ};
+    const Vec3 rightShoulder = {0.53f, 1.86f + bodyBob, charZ};
+    drawBoxPart(leftShoulder, Vec3{0.0f, -0.37f, 0.0f},
+                0.30f, 0.78f, 0.36f, opposite * 0.58f, &g_wall);
+    drawBoxPart(rightShoulder, Vec3{0.0f, -0.37f, 0.0f},
+                0.30f, 0.78f, 0.36f, walk * 0.58f, &g_wall);
+
+    // Cabeça quadrada e máscara escura no lado voltado para a câmera (-Z).
+    const Vec3 head = {0.0f, 2.48f + bodyBob, charZ};
+    drawBoxPart(head, Vec3{0.0f, 0.0f, 0.0f},
+                0.66f, 0.66f, 0.62f, sinf(g_animTime * 3.0f) * 0.035f, &g_wall);
+
+    const float faceZ = charZ - 0.315f;
+    const float faceY = head.y - 0.04f;
+    drawSolidQuad(
+        Vec3{-0.23f, faceY-0.14f, faceZ},
+        Vec3{ 0.23f, faceY-0.14f, faceZ},
+        Vec3{ 0.23f, faceY+0.13f, faceZ},
+        Vec3{-0.23f, faceY+0.13f, faceZ},
+        GS_SETREG_RGBAQ(38, 43, 42, 0x80, 0));
+    // Duas lentes/aberturas da máscara.
+    drawSolidQuad(
+        Vec3{-0.17f, faceY+0.015f, faceZ-0.006f},
+        Vec3{-0.035f, faceY+0.015f, faceZ-0.006f},
+        Vec3{-0.035f, faceY+0.085f, faceZ-0.006f},
+        Vec3{-0.17f, faceY+0.085f, faceZ-0.006f},
+        GS_SETREG_RGBAQ(145, 160, 145, 0x80, 0));
+    drawSolidQuad(
+        Vec3{0.035f, faceY+0.015f, faceZ-0.006f},
+        Vec3{0.17f, faceY+0.015f, faceZ-0.006f},
+        Vec3{0.17f, faceY+0.085f, faceZ-0.006f},
+        Vec3{0.035f, faceY+0.085f, faceZ-0.006f},
+        GS_SETREG_RGBAQ(145, 160, 145, 0x80, 0));
+}
+
 static void initGraphics() {
     g_gs = gsKit_init_global();
     g_gs->PSM = GS_PSM_CT24;
@@ -187,6 +310,8 @@ int main(int, char **) {
     for (;;) {
         gsKit_clear(g_gs, GS_SETREG_RGBAQ(18, 17, 14, 0x80, 0));
         renderRoom();
+        drawYellowMaskedCharacter();
+        g_animTime += 1.0f / 60.0f;
         gsKit_queue_exec(g_gs);
         gsKit_sync_flip(g_gs);
     }
