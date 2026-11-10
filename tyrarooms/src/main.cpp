@@ -192,9 +192,15 @@ static bool projectVertex(const Vec3 &p, float &sx, float &sy, int &sz) {
     const float focal = (float)g_gs->Width * 0.78f;
     sx = (float)g_gs->Width * 0.5f + (side * focal / viewDepth);
     sy = (float)g_gs->Height * 0.5f - (viewY * focal / viewDepth);
-#ifdef BACKROOMS_REVERSED_Z_TEST
-    /* GS Z testing uses GEQUAL; map near depths high and far depths low.
-       The active Z buffer is 16-bit (PSMZ_16S), so keep values in range. */
+#ifdef BACKROOMS_Z24_REPAIR_V1
+    /* PSMZ_24 experiment: gsKit uses GEQUAL, so nearer points receive
+       larger Z values. Keep the full 24-bit depth range and avoid overflow. */
+    float reversedDepth = 16777215.0f - viewDepth * 100000.0f;
+    if (reversedDepth < 1.0f) reversedDepth = 1.0f;
+    if (reversedDepth > 16777215.0f) reversedDepth = 16777215.0f;
+    sz = (int)reversedDepth;
+#elif defined(BACKROOMS_REVERSED_Z_TEST)
+    /* 16-bit diagnostic kept unchanged for comparison with older builds. */
     float reversedDepth = 65535.0f - viewDepth * 1000.0f;
     if (reversedDepth < 1.0f) reversedDepth = 1.0f;
     if (reversedDepth > 65535.0f) reversedDepth = 65535.0f;
@@ -1138,7 +1144,12 @@ static bool initGraphicsAndLoadLevel() {
     g_gs->Height = 448;
 
     g_gs->PSM=GS_PSM_CT32;
+#ifdef BACKROOMS_Z24_REPAIR_V1
+    /* Use the GS 24-bit depth format for a wider reversed-Z range. */
+    g_gs->PSMZ=GS_PSMZ_24;
+#else
     g_gs->PSMZ=GS_PSMZ_16;
+#endif
     g_gs->ZBuffering=GS_SETTING_ON;
     g_gs->PrimAlphaEnable=GS_SETTING_ON;
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
