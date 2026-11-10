@@ -1070,6 +1070,14 @@ static void updateDeathAnimation() {
 static bool initGraphicsAndLoadLevel() {
     g_gs=gsKit_init_global();
     if (!g_gs) return false;
+
+    /* Force the standard NTSC mode before gsKit programs the GS registers.
+       The console's auto-detected mode was producing a split/shifted picture
+       on this PS2 setup. Keep the standard 640x448 NTSC framebuffer. */
+    g_gs->Mode = GS_MODE_NTSC;
+    g_gs->Width = 640;
+    g_gs->Height = 448;
+
     g_gs->PSM=GS_PSM_CT24;
     g_gs->PSMZ=GS_PSMZ_24;
     g_gs->ZBuffering=GS_SETTING_ON;
