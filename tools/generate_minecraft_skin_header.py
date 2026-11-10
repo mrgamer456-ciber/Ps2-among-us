@@ -30,5 +30,5 @@ static const uint32_t minecraftSkinPixels[64 * 64] = {
 out_header.parent.mkdir(parents=True, exist_ok=True)
 out_header.write_text(header)
 out_preview.parent.mkdir(parents=True, exist_ok=True)
-skin.resize((512, 512), Image.Resampling.NEAREST).save(out_preview)
+skin.resize((512, 512), Image.NEAREST).save(out_preview)
 print(f"Generated {out_header} and {out_preview} from {source}; source={img.size}")
