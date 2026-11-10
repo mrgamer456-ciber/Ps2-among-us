@@ -99,3 +99,13 @@ target_include_directories(backrooms_rebuild_04 PRIVATE
     vendor/gsKit/ee/toolkit/include
 )
 target_link_libraries(backrooms_rebuild_04 PRIVATE gskit dmakit pad m)
+
+# Clean rebuild stage 05: deeper segmented 3D room with the controllable player.
+add_executable(backrooms_rebuild_05 src/rebuild_05_deep_room_player.cpp)
+set_target_properties(backrooms_rebuild_05 PROPERTIES OUTPUT_NAME "backrooms-rebuild-05-deep-room-player" SUFFIX ".elf")
+target_include_directories(backrooms_rebuild_05 PRIVATE
+    vendor/gsKit/ee/gs/include
+    vendor/gsKit/ee/dma/include
+    vendor/gsKit/ee/toolkit/include
+)
+target_link_libraries(backrooms_rebuild_05 PRIVATE gskit dmakit pad m)
