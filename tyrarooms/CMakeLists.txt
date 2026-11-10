@@ -89,3 +89,13 @@ target_include_directories(backrooms_rebuild_03 PRIVATE
     vendor/gsKit/ee/toolkit/include
 )
 target_link_libraries(backrooms_rebuild_03 PRIVATE gskit dmakit pad m)
+
+# Clean rebuild stage 04: untextured controllable character with basic walk animation.
+add_executable(backrooms_rebuild_04 src/rebuild_04_untextured_player.cpp)
+set_target_properties(backrooms_rebuild_04 PROPERTIES OUTPUT_NAME "backrooms-rebuild-04-untextured-player" SUFFIX ".elf")
+target_include_directories(backrooms_rebuild_04 PRIVATE
+    vendor/gsKit/ee/gs/include
+    vendor/gsKit/ee/dma/include
+    vendor/gsKit/ee/toolkit/include
+)
+target_link_libraries(backrooms_rebuild_04 PRIVATE gskit dmakit pad m)
