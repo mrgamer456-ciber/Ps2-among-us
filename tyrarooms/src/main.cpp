@@ -840,7 +840,7 @@ static float stickAxis(unsigned char raw, bool invert) {
 }
 
 static void drawHud() {
-    if (!g_loadingFont) return;
+    if (!g_graphicsReady) return;
     const float sw=(float)g_gs->Width;
     const float left=18.0f, top=18.0f, barW=142.0f, barH=10.0f;
     const float lifeY=42.0f, staminaY=76.0f;
