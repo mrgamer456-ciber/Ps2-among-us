@@ -66,7 +66,8 @@ jobs:
           cmake --build tyrarooms/build --parallel 2
           test -s tyrarooms/build/backrooms.elf
           test -s tyrarooms/build/gs_diagnostic.elf
-          ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/gs_diagnostic.elf
+          test -s tyrarooms/build/gs_diagnostic_gameinit.elf
+          ls -lh tyrarooms/build/backrooms.elf tyrarooms/build/gs_diagnostic.elf tyrarooms/build/gs_diagnostic_gameinit.elf
 
       - name: Upload maze ELF
         uses: actions/upload-artifact@v4
@@ -80,4 +81,11 @@ jobs:
         with:
           name: backrooms-gs-diagnostic
           path: tyrarooms/build/gs_diagnostic.elf
+          if-no-files-found: error
+
+      - name: Upload game-init graphics diagnostic ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: backrooms-gs-gameinit-diagnostic
+          path: tyrarooms/build/gs_diagnostic_gameinit.elf
           if-no-files-found: error
