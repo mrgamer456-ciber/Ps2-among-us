@@ -23,6 +23,7 @@ static GSGLOBAL *g_gs = 0;
 static GSTEXTURE g_wall;
 static GSTEXTURE g_floor;
 static GSTEXTURE g_ceiling;
+static GSTEXTURE g_suit;
 static Camera g_camera = { 0.0f, 1.55f, -2.0f, 0.0f };
 static float g_animTime = 0.0f;
 
@@ -62,7 +63,7 @@ static void makeTexture(GSTEXTURE *tex, int kind) {
                 g = (unsigned char)(61 + n / 2 + fleck);
                 b = (unsigned char)(43 + n / 3);
                 if (((x * 3 + y * 5) % 29) == 0) { r -= 8; g -= 8; b -= 5; }
-            } else { // teto claro com painéis fluorescentes
+            } else if (kind == 2) { // teto claro com painéis fluorescentes
                 bool lamp = ((x > 7 && x < 25) || (x > 39 && x < 57)) &&
                             (y > 26 && y < 38);
                 if (lamp) {
@@ -238,26 +239,26 @@ static void drawYellowMaskedCharacter() {
     const Vec3 leftHip = {-0.19f, 0.91f + bodyBob, charZ};
     const Vec3 rightHip = {0.19f, 0.91f + bodyBob, charZ};
     drawBoxPart(leftHip, Vec3{0.0f, -0.39f, 0.0f},
-                0.34f, 0.82f, 0.38f, walk * 0.48f, &g_wall);
+                0.34f, 0.82f, 0.38f, walk * 0.48f, &g_suit);
     drawBoxPart(rightHip, Vec3{0.0f, -0.39f, 0.0f},
-                0.34f, 0.82f, 0.38f, opposite * 0.48f, &g_wall);
+                0.34f, 0.82f, 0.38f, opposite * 0.48f, &g_suit);
 
     // Tronco quadrado com roupa amarela.
     drawBoxPart(Vec3{0.0f, torsoY, charZ}, Vec3{0.0f, 0.0f, 0.0f},
-                0.86f, 0.98f, 0.48f, 0.0f, &g_wall);
+                0.86f, 0.98f, 0.48f, 0.0f, &g_suit);
 
     // Braços pendurados nos ombros, em oposição às pernas.
     const Vec3 leftShoulder = {-0.53f, 1.86f + bodyBob, charZ};
     const Vec3 rightShoulder = {0.53f, 1.86f + bodyBob, charZ};
     drawBoxPart(leftShoulder, Vec3{0.0f, -0.37f, 0.0f},
-                0.30f, 0.78f, 0.36f, opposite * 0.58f, &g_wall);
+                0.30f, 0.78f, 0.36f, opposite * 0.58f, &g_suit);
     drawBoxPart(rightShoulder, Vec3{0.0f, -0.37f, 0.0f},
-                0.30f, 0.78f, 0.36f, walk * 0.58f, &g_wall);
+                0.30f, 0.78f, 0.36f, walk * 0.58f, &g_suit);
 
     // Cabeça quadrada e máscara escura no lado voltado para a câmera (-Z).
     const Vec3 head = {0.0f, 2.48f + bodyBob, charZ};
     drawBoxPart(head, Vec3{0.0f, 0.0f, 0.0f},
-                0.66f, 0.66f, 0.62f, sinf(g_animTime * 3.0f) * 0.035f, &g_wall);
+                0.66f, 0.66f, 0.62f, sinf(g_animTime * 3.0f) * 0.035f, &g_suit);
 
     const float faceZ = charZ - 0.315f;
     const float faceY = head.y - 0.04f;
@@ -301,7 +302,7 @@ static void initGraphics() {
 
     makeTexture(&g_wall, 0);
     makeTexture(&g_floor, 1);
-    makeTexture(&g_ceiling, 2);
+    makeTexture(&g_ceiling, 2);\n    makeTexture(&g_suit, 3);
 }
 
 int main(int, char **) {
