@@ -47,6 +47,10 @@ static bool g_previousCircle = false;
 static bool g_playerDead = false;
 static float g_health = 100.0f;
 static float g_stamina = 100.0f;
+static bool g_waterCollected = false;
+static float g_waterMessageTimer = 0.0f;
+static const float g_waterX = 0.0f;
+static const float g_waterZ = 22.75f;
 static float g_deathTimer = 0.0f;
 static float g_deathTilt = 0.0f;
 static float g_deathLimbFlop = 0.0f;
@@ -308,6 +312,24 @@ static void drawFloorArrow(float x, float z, int direction) {
                   Vec3{hx+wx*0.22f,y,hz+wz*0.22f},black);
 }
 
+/* Low-poly water bottle assembled from solid 3D geometry, not a billboard texture. */
+static void drawWaterBottle() {
+    if (g_waterCollected) return;
+    const float x=g_waterX, z=g_waterZ;
+    drawSolidBox(Vec3{x,0.245f,z},0.31f,0.48f,0.27f,
+                 GS_SETREG_RGBAQ(65,177,205,0x80,0));
+    drawSolidBox(Vec3{x,0.255f,z-0.006f},0.235f,0.34f,0.205f,
+                 GS_SETREG_RGBAQ(35,126,190,0x80,0));
+    drawSolidBox(Vec3{x,0.515f,z},0.255f,0.13f,0.235f,
+                 GS_SETREG_RGBAQ(100,205,220,0x80,0));
+    drawSolidBox(Vec3{x,0.625f,z},0.145f,0.12f,0.145f,
+                 GS_SETREG_RGBAQ(112,215,225,0x80,0));
+    drawSolidBox(Vec3{x,0.705f,z},0.17f,0.075f,0.17f,
+                 GS_SETREG_RGBAQ(30,91,155,0x80,0));
+    drawSolidBox(Vec3{x-0.105f,0.27f,z-0.139f},0.025f,0.30f,0.012f,
+                 GS_SETREG_RGBAQ(185,235,240,0x80,0));
+}
+
 static void renderMaze() {
     for (int r=0;r<MAP_H;++r) {
         for (int c=0;c<MAP_W;++c) {
@@ -336,6 +358,8 @@ static void renderMaze() {
     drawFloorArrow(cellX(10),cellZ(8),2);
     drawFloorArrow(cellX(8),cellZ(10),3);
     drawFloorArrow(cellX(8),cellZ(11),2);
+
+    drawWaterBottle();
 
     /* 3D exit frame and green marker beyond the last corridor tile. */
     const float exitZ = cellZ(12) + CELL * 0.5f;
@@ -651,6 +675,19 @@ static void drawHud() {
     if(staminaEnd>bx+1.0f) gsKit_prim_sprite(g_gs,bx+1,staminaY+22,staminaEnd,staminaY+29,4,
         GS_SETREG_RGBAQ(238,190,45,0x80,0));
 
+    if(g_waterMessageTimer>0.0f) {
+        gsKit_fontm_print_scaled(g_gs,g_loadingFont,sw*0.5f-100.0f,112.0f,2,0.58f,
+            GS_SETREG_RGBAQ(110,220,245,0x80,0),
+            "AGUA! STAMINA RESTAURADA");
+    } else if(!g_waterCollected) {
+        const float dx=g_camera.x-g_waterX, dz=g_camera.z-g_waterZ;
+        if(dx*dx+dz*dz < 3.0f*3.0f) {
+            gsKit_fontm_print_scaled(g_gs,g_loadingFont,sw*0.5f-112.0f,112.0f,2,0.52f,
+                GS_SETREG_RGBAQ(180,225,235,0x80,0),
+                "AGUA: RECUPERA TODA A STAMINA");
+        }
+    }
+
     /* DOORS-style inventory: eight empty slots in one straight horizontal row. */
     const float slotSize=30.0f;
     const float slotGap=5.0f;
@@ -741,6 +778,17 @@ static void updateController() {
     const float nz=g_camera.z+fz*forward-sinf(g_camera.yaw)*strafe;
     if(canStand(nx,g_camera.z)) g_camera.x=nx;
     if(canStand(g_camera.x,nz)) g_camera.z=nz;
+
+    /* Pick up the bottle automatically when the player reaches it. */
+    if(!g_waterCollected) {
+        const float dx=g_camera.x-g_waterX, dz=g_camera.z-g_waterZ;
+        if(dx*dx+dz*dz < 1.05f*1.05f) {
+            g_waterCollected=true;
+            g_stamina=100.0f;
+            g_waterMessageTimer=4.0f;
+        }
+    }
+    if(g_waterMessageTimer>0.0f) g_waterMessageTimer-=dt;
 
     /* Real vertical jump arc: velocity, gravity and camera height all change. */
     if(!g_grounded) {
