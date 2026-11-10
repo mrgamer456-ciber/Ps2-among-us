@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <gsToolkit.h>
+#include "minecraft_skin.h"
 
 static const int TEX_SIZE = 64;
 static const int MAP_W = 13;
@@ -139,18 +140,16 @@ static bool makeTexture(GSTEXTURE *tex, int kind) {
                 b = (unsigned char)(148 + n / 3);
                 if ((x % 32) < 2 || (y % 32) < 2) { r -= 5; g -= 5; b -= 4; }
             } else {
-                int seam = ((x % 32) < 2 || (y % 32) < 2) ? 10 : 0;
-                r = (unsigned char)(205 + n / 4 - seam);
-                g = (unsigned char)(174 + n / 4 - seam);
-                b = (unsigned char)(53 + n / 5 - seam / 2);
-                if (x > 42 && x < 59 && y > 36 && y < 57) {
-                    r = (unsigned char)(190 + n / 4);
-                    g = (unsigned char)(158 + n / 4);
-                    b = (unsigned char)(43 + n / 5);
-                }
+                /* Fallback only; the Minecraft skin atlas is copied below. */
+                r = 0; g = 0; b = 0;
             }
             tex->Mem[y * texSize + x] = packColor(r, g, b);
         }
+    }
+    if (kind == 3) {
+        for (int y=0; y<TEX_SIZE; ++y)
+            for (int x=0; x<TEX_SIZE; ++x)
+                tex->Mem[y*TEX_SIZE+x] = minecraftSkinPixels[y*TEX_SIZE+x];
     }
     tex->Vram = gsKit_vram_alloc(g_gs,
         gsKit_texture_size(tex->Width, tex->Height, tex->PSM),
@@ -193,6 +192,19 @@ static void drawQuad(const GSTEXTURE *tex, const Vec3 &a, const Vec3 &b,
     gsKit_prim_quad_texture_3d(g_gs, (GSTEXTURE *)tex,
         x1,y1,z1,0.0f,0.0f, x2,y2,z2,tileU,0.0f,
         x3,y3,z3,tileU,tileV, x4,y4,z4,0.0f,tileV,
+        GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
+}
+
+static void drawQuadUV(const GSTEXTURE *tex, const Vec3 &a, const Vec3 &b,
+                         const Vec3 &c, const Vec3 &d,
+                         float u0, float v0, float u1, float v1) {
+    float x1,y1,x2,y2,x3,y3,x4,y4;
+    int z1,z2,z3,z4;
+    if (!projectVertex(a,x1,y1,z1) || !projectVertex(b,x2,y2,z2) ||
+        !projectVertex(c,x3,y3,z3) || !projectVertex(d,x4,y4,z4)) return;
+    gsKit_prim_quad_texture_3d(g_gs, (GSTEXTURE *)tex,
+        x1,y1,z1,u0,v0, x2,y2,z2,u1,v0,
+        x3,y3,z3,u1,v1, x4,y4,z4,u0,v1,
         GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
 }
 
@@ -439,12 +451,13 @@ static void drawFirstPersonArm(float side, float swing, float bob) {
         const float rz=ys[i]*sn+zs[i]*c;
         v[i]=viewToWorld(cx+xs[i],cy+ry,cz+rz);
     }
-    drawQuad(&g_suit,v[0],v[1],v[2],v[3],1,1);
-    drawQuad(&g_suit,v[5],v[4],v[7],v[6],1,1);
-    drawQuad(&g_suit,v[4],v[0],v[3],v[7],1,1);
-    drawQuad(&g_suit,v[1],v[5],v[6],v[2],1,1);
-    drawQuad(&g_suit,v[3],v[2],v[6],v[7],1,1);
-    drawQuad(&g_suit,v[4],v[5],v[1],v[0],1,1);
+    /* Minecraft classic 64x64 right-arm UV atlas, sampled without repainting. */
+    drawQuadUV(&g_suit,v[0],v[1],v[2],v[3],44.0f/64,20.0f/64,48.0f/64,32.0f/64); // front
+    drawQuadUV(&g_suit,v[5],v[4],v[7],v[6],52.0f/64,20.0f/64,56.0f/64,32.0f/64); // back
+    drawQuadUV(&g_suit,v[4],v[0],v[3],v[7],40.0f/64,20.0f/64,44.0f/64,32.0f/64); // left
+    drawQuadUV(&g_suit,v[1],v[5],v[6],v[2],48.0f/64,20.0f/64,52.0f/64,32.0f/64); // right
+    drawQuadUV(&g_suit,v[3],v[2],v[6],v[7],44.0f/64,16.0f/64,48.0f/64,20.0f/64); // top
+    drawQuadUV(&g_suit,v[4],v[5],v[1],v[0],48.0f/64,16.0f/64,52.0f/64,20.0f/64); // bottom
 }
 
 static void drawFirstPersonArms() {
