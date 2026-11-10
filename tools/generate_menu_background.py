@@ -13,7 +13,7 @@ if not SOURCE.is_file():
 # Preserve the original BMP. Crop only the generated in-memory copy to 4:3,
 # then downsample to 512x384 and pad the 512x512 GS texture with black.
 image = Image.open(SOURCE).convert("RGB")
-image = ImageOps.fit(image, (512, 384), method=Image.Resampling.LANCZOS,
+image = ImageOps.fit(image, (512, 384), method=Image.LANCZOS,
                      centering=(0.5, 0.5))
 pixels = []
 for y in range(512):
