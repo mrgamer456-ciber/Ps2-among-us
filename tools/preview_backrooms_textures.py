@@ -11,18 +11,32 @@ SIZE = 64
 OUT = "texture-previews"
 
 def noise(x, y, seed):
-    n = (x * 374761393 + y * 668265667 + seed * 1442695041) & 0xFFFFFFFF
+    n = (x * 374761393 + y * 668265263 + seed * 1442695041) & 0xFFFFFFFF
     n = ((n ^ (n >> 13)) * 1274126177) & 0xFFFFFFFF
     return (n ^ (n >> 16)) & 31
 
 def pixel(kind, x, y):
     n = noise(x, y, kind + 7)
-    if kind == 0:  # wall
-        seam = 9 if x % 32 == 0 else 0
-        r, g, b = 190 + n // 3 - seam, 174 + n // 3 - seam, 91 + n // 4 - seam
+    if kind == 0:  # Backrooms Level 0 aged yellow wallpaper
+        grain = n - 15
+        broad = noise(x >> 3, y >> 3, 41) - 15
+        middle = noise(x >> 1, y >> 2, 53) - 15
+        vertical = -3 if x % 16 < 2 else (2 if x % 16 > 13 else 0)
+        emboss = 0
+        mx, my = x % 16, y % 16
+        if mx in (7, 8) and my in (3, 12):
+            emboss = -3
+        if mx in (6, 9) and my in (4, 11):
+            emboss = 2
+        damp = 0
+        if broad < -5 and y > 34:
+            damp = -(((-broad - 5) * (y - 33)) // 18)
+        shade = grain // 2 + broad // 2 + middle // 3 + vertical + emboss + damp
+        r, g, b = 194 + shade, 177 + shade, 105 + shade // 2
         if y % 32 == 0:
             r -= 4
             g -= 4
+            b -= 2
     elif kind == 1:  # carpet
         fleck = 9 if n > 24 else 0
         r, g, b = 65 + n // 2 + fleck, 61 + n // 2 + fleck, 43 + n // 3
