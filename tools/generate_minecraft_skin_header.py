@@ -11,7 +11,7 @@ img = Image.open(source).convert("RGBA")
 if img.width != img.height:
     raise SystemExit(f"Skin must be square; got {img.size}")
 # Minecraft skins are pixel art. Nearest-neighbour preserves every hard pixel edge.
-skin = img.resize((64, 64), Image.Resampling.NEAREST).convert("RGB")
+skin = img.resize((64, 64), Image.NEAREST).convert("RGB")
 pixels = []
 for y in range(64):
     for x in range(64):
