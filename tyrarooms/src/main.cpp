@@ -60,7 +60,7 @@ static float g_deathX = 0.0f, g_deathZ = 0.0f, g_deathYaw = 0.0f;
 static GSGLOBAL *g_gs = 0;
 static GSTEXTURE g_wall, g_floor, g_ceiling, g_suit, g_menuBackground;
 static int g_difficulty = 1; // 0=facil, 1=normal, 2=dificil
-static GSFONTM *g_loadingFont = 0;
+static bool g_graphicsReady = false;
 static Camera g_camera = { 0.0f, 1.55f, -1.35f, 0.0f };
 static float g_animTime = 0.0f;
 static unsigned char g_padBuffer[256] __attribute__((aligned(64)));
@@ -583,7 +583,7 @@ static void runMainMenu() {
 }
 
 static void drawLoadingScreen(const char *status, int progress) {
-    if (!g_loadingFont) return;
+    if (!g_graphicsReady) return;
     if (progress < 0) progress = 0;
     if (progress > 100) progress = 100;
 
@@ -1094,9 +1094,9 @@ static bool initGraphicsAndLoadLevel() {
     gsKit_set_clamp(g_gs,GS_CMODE_REPEAT);
     gsKit_mode_switch(g_gs,GS_ONESHOT);
 
-    g_loadingFont = gsKit_init_fontm();
-    if (!g_loadingFont) return false;
-    gsKit_fontm_upload(g_gs,g_loadingFont);
+    /* The game uses its own 5x7 sprite font; gsKit's separate font atlas
+       is never drawn. Avoid allocating/uploading an unused font texture. */
+    g_graphicsReady = true;
     drawLoadingScreen("INICIANDO GRAFICOS",5);
 
     drawLoadingScreen("CRIANDO TEXTURA DAS PAREDES",10);
