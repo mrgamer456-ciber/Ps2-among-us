@@ -25,6 +25,7 @@ jobs:
       - name: Install build tools without interactive prompts
         run: |
           export DEBIAN_FRONTEND=noninteractive
+          apt-get -o Acquire::Retries=3 update
           apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" git cmake make pkg-config
 
       - name: Configure Git safe directory
