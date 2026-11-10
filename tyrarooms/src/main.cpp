@@ -51,19 +51,19 @@ static void makeTexture(GSTEXTURE *tex, int kind) {
             unsigned int n = noise(x, y, (unsigned int)(kind + 7));
             unsigned char r = 0, g = 0, b = 0;
 
-            if (kind == 0) { // papel de parede amarelo, com pequenas variações
+            if (kind == 0) {
                 int seam = (x % 32 == 0) ? 7 : 0;
                 r = (unsigned char)(190 + n / 3 - seam);
                 g = (unsigned char)(174 + n / 3 - seam);
                 b = (unsigned char)(91 + n / 4 - seam);
                 if ((y % 32) == 0) { r -= 3; g -= 3; }
-            } else if (kind == 1) { // carpete gasto e úmido
+            } else if (kind == 1) {
                 int fleck = (n > 24) ? 9 : 0;
                 r = (unsigned char)(65 + n / 2 + fleck);
                 g = (unsigned char)(61 + n / 2 + fleck);
                 b = (unsigned char)(43 + n / 3);
                 if (((x * 3 + y * 5) % 29) == 0) { r -= 8; g -= 8; b -= 5; }
-            } else if (kind == 2) { // teto claro com painéis fluorescentes
+            } else if (kind == 2) {
                 bool lamp = ((x > 7 && x < 25) || (x > 39 && x < 57)) &&
                             (y > 26 && y < 38);
                 if (lamp) {
@@ -75,7 +75,7 @@ static void makeTexture(GSTEXTURE *tex, int kind) {
                     g = (unsigned char)(169 + n / 3);
                     b = (unsigned char)(145 + n / 3);
                 }
-            } else { // tecido amarelo da roupa, diferente do papel de parede
+            } else {
                 int seam = ((x % 32) < 2 || (y % 32) < 2) ? 10 : 0;
                 r = (unsigned char)(205 + n / 4 - seam);
                 g = (unsigned char)(174 + n / 4 - seam);
@@ -122,8 +122,6 @@ static void drawQuad(const GSTEXTURE *tex,
     float x1, y1, x2, y2, x3, y3, x4, y4;
     int z1, z2, z3, z4;
 
-    // A sala inicial fica inteiramente à frente da câmera; se uma face
-    // cruzar o plano da câmera, ela será ignorada nesta primeira versão.
     if (!projectVertex(a, x1, y1, z1) ||
         !projectVertex(b, x2, y2, z2) ||
         !projectVertex(c, x3, y3, z3) ||
@@ -142,13 +140,11 @@ static void renderRoom() {
     const float h = ROOM_HEIGHT;
     const float l = ROOM_LENGTH;
 
-    // Piso: um plano 3D horizontal real.
     drawQuad(&g_floor,
         Vec3{-w, 0.0f, 0.0f}, Vec3{ w, 0.0f, 0.0f},
         Vec3{ w, 0.0f, l},   Vec3{-w, 0.0f, l},
         8.0f, 32.0f);
 
-    // Parede esquerda e direita: planos verticais reais.
     drawQuad(&g_wall,
         Vec3{-w, 0.0f, 0.0f}, Vec3{-w, h, 0.0f},
         Vec3{-w, h, l},       Vec3{-w, 0.0f, l},
@@ -158,20 +154,16 @@ static void renderRoom() {
         Vec3{ w, h, 0.0f}, Vec3{ w, 0.0f, 0.0f},
         8.0f, 4.0f);
 
-    // Parede do fundo.
     drawQuad(&g_wall,
         Vec3{-w, 0.0f, l}, Vec3{ w, 0.0f, l},
         Vec3{ w, h, l},    Vec3{-w, h, l},
         8.0f, 4.0f);
 
-    // Teto: outro plano 3D, com textura de placas e fluorescentes.
     drawQuad(&g_ceiling,
         Vec3{-w, h, l}, Vec3{ w, h, l},
         Vec3{ w, h, 0.0f}, Vec3{-w, h, 0.0f},
         8.0f, 32.0f);
 }
-
-
 
 static void drawSolidQuad(const Vec3 &a, const Vec3 &b,
                           const Vec3 &c, const Vec3 &d,
@@ -226,26 +218,21 @@ static void drawBoxPart(const Vec3 &pivot, const Vec3 &centerOffset,
     for (int i = 0; i < 8; ++i)
         v[i] = rotateAroundX(v[i], pivot, swing);
 
-    const float repeatU = 1.0f;
-    const float repeatV = 1.0f;
-    drawQuad(texture, v[0], v[1], v[2], v[3], repeatU, repeatV); // frente
-    drawQuad(texture, v[5], v[4], v[7], v[6], repeatU, repeatV); // costas
-    drawQuad(texture, v[4], v[0], v[3], v[7], repeatU, repeatV); // esquerda
-    drawQuad(texture, v[1], v[5], v[6], v[2], repeatU, repeatV); // direita
-    drawQuad(texture, v[3], v[2], v[6], v[7], repeatU, repeatV); // topo
-    drawQuad(texture, v[4], v[5], v[1], v[0], repeatU, repeatV); // base
+    drawQuad(texture, v[0], v[1], v[2], v[3], 1.0f, 1.0f);
+    drawQuad(texture, v[5], v[4], v[7], v[6], 1.0f, 1.0f);
+    drawQuad(texture, v[4], v[0], v[3], v[7], 1.0f, 1.0f);
+    drawQuad(texture, v[1], v[5], v[6], v[2], 1.0f, 1.0f);
+    drawQuad(texture, v[3], v[2], v[6], v[7], 1.0f, 1.0f);
+    drawQuad(texture, v[4], v[5], v[1], v[0], 1.0f, 1.0f);
 }
 
 static void drawYellowMaskedCharacter() {
-    // O boneco é montado com blocos 3D independentes, estilo Minecraft.
-    // A animação usa balanço alternado de braços/pernas e oscilação do tronco.
     const float walk = sinf(g_animTime * 6.0f);
     const float opposite = sinf(g_animTime * 6.0f + 3.14159265f);
     const float bodyBob = fabsf(sinf(g_animTime * 6.0f)) * 0.045f;
     const float torsoY = 1.48f + bodyBob;
     const float charZ = 4.7f;
 
-    // Pernas articuladas no quadril.
     const Vec3 leftHip = {-0.19f, 0.91f + bodyBob, charZ};
     const Vec3 rightHip = {0.19f, 0.91f + bodyBob, charZ};
     drawBoxPart(leftHip, Vec3{0.0f, -0.39f, 0.0f},
@@ -253,11 +240,9 @@ static void drawYellowMaskedCharacter() {
     drawBoxPart(rightHip, Vec3{0.0f, -0.39f, 0.0f},
                 0.34f, 0.82f, 0.38f, opposite * 0.48f, &g_suit);
 
-    // Tronco quadrado com roupa amarela.
     drawBoxPart(Vec3{0.0f, torsoY, charZ}, Vec3{0.0f, 0.0f, 0.0f},
                 0.86f, 0.98f, 0.48f, 0.0f, &g_suit);
 
-    // Braços pendurados nos ombros, em oposição às pernas.
     const Vec3 leftShoulder = {-0.53f, 1.86f + bodyBob, charZ};
     const Vec3 rightShoulder = {0.53f, 1.86f + bodyBob, charZ};
     drawBoxPart(leftShoulder, Vec3{0.0f, -0.37f, 0.0f},
@@ -265,7 +250,6 @@ static void drawYellowMaskedCharacter() {
     drawBoxPart(rightShoulder, Vec3{0.0f, -0.37f, 0.0f},
                 0.30f, 0.78f, 0.36f, walk * 0.58f, &g_suit);
 
-    // Cabeça quadrada e máscara escura no lado voltado para a câmera (-Z).
     const Vec3 head = {0.0f, 2.48f + bodyBob, charZ};
     drawBoxPart(head, Vec3{0.0f, 0.0f, 0.0f},
                 0.66f, 0.66f, 0.62f, sinf(g_animTime * 3.0f) * 0.035f, &g_suit);
@@ -278,7 +262,6 @@ static void drawYellowMaskedCharacter() {
         Vec3{ 0.23f, faceY+0.13f, faceZ},
         Vec3{-0.23f, faceY+0.13f, faceZ},
         GS_SETREG_RGBAQ(38, 43, 42, 0x80, 0));
-    // Duas lentes/aberturas da máscara.
     drawSolidQuad(
         Vec3{-0.17f, faceY+0.015f, faceZ-0.006f},
         Vec3{-0.035f, faceY+0.015f, faceZ-0.006f},
@@ -312,7 +295,8 @@ static void initGraphics() {
 
     makeTexture(&g_wall, 0);
     makeTexture(&g_floor, 1);
-    makeTexture(&g_ceiling, 2);\n    makeTexture(&g_suit, 3);
+    makeTexture(&g_ceiling, 2);
+    makeTexture(&g_suit, 3);
 }
 
 int main(int, char **) {
