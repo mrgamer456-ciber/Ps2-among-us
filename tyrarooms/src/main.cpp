@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
+#include <gsToolkit.h>
 
 static const int TEX_SIZE = 64;
 static const int MAP_W = 13;
