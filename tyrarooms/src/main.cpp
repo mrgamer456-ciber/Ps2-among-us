@@ -192,8 +192,17 @@ static bool projectVertex(const Vec3 &p, float &sx, float &sy, int &sz) {
     const float focal = (float)g_gs->Width * 0.78f;
     sx = (float)g_gs->Width * 0.5f + (side * focal / viewDepth);
     sy = (float)g_gs->Height * 0.5f - (viewY * focal / viewDepth);
+#ifdef BACKROOMS_REVERSED_Z_TEST
+    /* GS Z testing uses GEQUAL; map near depths high and far depths low.
+       The active Z buffer is 16-bit (PSMZ_16S), so keep values in range. */
+    float reversedDepth = 65535.0f - viewDepth * 1000.0f;
+    if (reversedDepth < 1.0f) reversedDepth = 1.0f;
+    if (reversedDepth > 65535.0f) reversedDepth = 65535.0f;
+    sz = (int)reversedDepth;
+#else
     sz = (int)(viewDepth * 1800.0f);
     if (sz < 1) sz = 1;
+#endif
     return true;
 }
 
