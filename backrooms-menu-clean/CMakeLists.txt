@@ -43,3 +43,12 @@ add_backrooms_test(test03_primitives "backrooms-test03-primitives-v5" 0 0 1 GS_F
 add_backrooms_test(test04_font "backrooms-test04-font-v5" 0 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
 add_backrooms_test(test05_bg_linear "backrooms-test05-background-linear-v5" 1 0 0 GS_FILTER_LINEAR GS_MODE_NTSC)
 add_backrooms_test(test06_full "backrooms-test06-full-menu-v5" 1 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
+
+
+# V6: mesma bateria de seis testes, agora com estado explícito de alpha.
+add_backrooms_test(test01_clear_v6 "backrooms-test01-clear-v6" 0 0 0 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test02_bg_v6 "backrooms-test02-background-v6" 1 0 0 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test03_primitives_v6 "backrooms-test03-primitives-v6" 0 0 1 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test04_font_v6 "backrooms-test04-font-v6" 0 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test05_bg_linear_v6 "backrooms-test05-background-linear-v6" 1 0 0 GS_FILTER_LINEAR GS_MODE_NTSC)
+add_backrooms_test(test06_full_v6 "backrooms-test06-full-menu-v6" 1 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
