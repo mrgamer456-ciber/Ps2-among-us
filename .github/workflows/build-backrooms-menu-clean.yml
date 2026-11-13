@@ -25,8 +25,13 @@ jobs:
             h4570/tyra \
             bash -lc '
               set -e
+              export DEBIAN_FRONTEND=noninteractive
+              export TZ=America/Fortaleza
               apt-get update
-              apt-get install -y cmake make python3-pil pkg-config git
+              apt-get install -y tzdata cmake make python3-pil pkg-config git
+              ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
+              echo "$TZ" > /etc/timezone
+              dpkg-reconfigure -f noninteractive tzdata
               export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
               mkdir -p backrooms-menu-clean/assets
               cp tyrarooms/assets/menu/main.tga backrooms-menu-clean/assets/main.tga
