@@ -54,6 +54,7 @@ jobs:
               cmake --build backrooms-menu-clean/build --parallel 2
               test -s backrooms-menu-clean/build/backrooms-menu-clean-v2.elf
               test -s backrooms-menu-clean/build/backrooms-background-test-v3.elf
+              test -s backrooms-menu-clean/build/backrooms-menu-atlas-v4.elf
             '
       - uses: actions/upload-artifact@v4
         with:
@@ -61,4 +62,5 @@ jobs:
           path: |
             backrooms-menu-clean/build/backrooms-menu-clean-v2.elf
             backrooms-menu-clean/build/backrooms-background-test-v3.elf
+            backrooms-menu-clean/build/backrooms-menu-atlas-v4.elf
           if-no-files-found: error
