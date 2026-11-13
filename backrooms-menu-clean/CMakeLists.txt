@@ -20,5 +20,5 @@ include_directories(
 add_subdirectory("../tyrarooms/vendor/gsKit" gskit-build)
 link_directories("$ENV{PS2SDK}/ee/lib")
 add_executable(backrooms_menu_clean src/menu.cpp)
-set_target_properties(backrooms_menu_clean PROPERTIES OUTPUT_NAME "backrooms-menu-clean-v1" SUFFIX ".elf")
+set_target_properties(backrooms_menu_clean PROPERTIES OUTPUT_NAME "backrooms-menu-clean-v2" SUFFIX ".elf")
 target_link_libraries(backrooms_menu_clean PRIVATE gskit dmakit pad m)
