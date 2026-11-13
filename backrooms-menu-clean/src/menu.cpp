@@ -119,8 +119,8 @@ int main(int,char**) {
         centered("CHATGPT",295,2,GS_SETREG_RGBAQ(235,225,200,0x80,0));
         centered("O VOLTAR",390,2,GS_SETREG_RGBAQ(245,230,200,0x80,0));
       }
-      // gsKit's frame sequence is sync -> execute queued GIF data -> reset queue.
-      // Executing after the flip was reversed and could show partial/corrupted frames.
+      // Persistent-mode sequence matches the official gsKit alpha.c example:
+      // sync/flip, execute queued GIF data, then reset the persistent queue.
       gsKit_sync_flip(gs);
       gsKit_queue_exec(gs);
       gsKit_queue_reset(gs->Per_Queue);
