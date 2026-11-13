@@ -32,6 +32,17 @@ jobs:
               ln -snf /usr/share/zoneinfo/$TZ /etc/localtime
               echo "$TZ" > /etc/timezone
               dpkg-reconfigure -f noninteractive tzdata
+              export PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
+              TAMTYPES="$(find "$PS2DEV" -path '*/common/include/tamtypes.h' -print -quit)"
+              if [ -z "$TAMTYPES" ]; then
+                echo "ERRO: tamtypes.h nao encontrado dentro de $PS2DEV"
+                find "$PS2DEV" -maxdepth 4 -type d | head -80
+                exit 1
+              fi
+              export PS2SDK="${TAMTYPES%/common/include/tamtypes.h}"
+              echo "PS2DEV=$PS2DEV"
+              echo "PS2SDK=$PS2SDK"
+              git config --global --add safe.directory /work
               export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
               mkdir -p backrooms-menu-clean/assets
               cp tyrarooms/assets/menu/main.tga backrooms-menu-clean/assets/main.tga
