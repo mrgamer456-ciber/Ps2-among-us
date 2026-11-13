@@ -7,6 +7,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "background.h"
+#ifndef TEST_BACKGROUND
+#define TEST_BACKGROUND 1
+#endif
+#ifndef TEST_FONT
+#define TEST_FONT 1
+#endif
+#ifndef TEST_UI
+#define TEST_UI 1
+#endif
+#ifndef TEST_FILTER
+#define TEST_FILTER GS_FILTER_LINEAR
+#endif
+#ifndef TEST_MODE
+#define TEST_MODE GS_MODE_NTSC
+#endif
 
 static GSGLOBAL *gs = 0;
 static GSTEXTURE bg;
@@ -61,7 +76,7 @@ static bool buildFontAtlas() {
 static bool loadBackground() {
  memset(&bg,0,sizeof(bg));
  bg.Width=512; bg.Height=512; bg.TBW=8;
- bg.PSM=GS_PSM_CT32; bg.Filter=GS_FILTER_LINEAR;
+ bg.PSM=GS_PSM_CT32; bg.Filter=TEST_FILTER;
  bg.Mem=(u32*)memalign(128,512*512*sizeof(uint32_t));
  if(!bg.Mem) return false;
  memcpy(bg.Mem,cleanMenuPixels,512*512*sizeof(uint32_t));
@@ -94,7 +109,7 @@ static void centered(const char *s,int y,int scale,u64 color) {
 int main(int,char**) {
  gs=gsKit_init_global();
  if(!gs) for(;;){}
- gs->Mode=GS_MODE_NTSC; gs->Width=640; gs->Height=448;
+ gs->Mode=TEST_MODE; gs->Width=640; gs->Height=448;
  gs->PSM=GS_PSM_CT32; gs->PSMZ=GS_PSMZ_16; gs->ZBuffering=GS_SETTING_OFF;
  gs->PrimAlphaEnable=GS_SETTING_ON;
  dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,D_CTRL_STD_OFF,D_CTRL_RCYC_8,1<<DMA_CHANNEL_GIF);
@@ -107,7 +122,12 @@ int main(int,char**) {
    if(padGetState(0,0)==PAD_STATE_STABLE)
      padSetMainMode(0,0,PAD_MMODE_DUALSHOCK,PAD_MMODE_LOCK);
  }
- if(!loadBackground() || !buildFontAtlas()) for(;;){}
+ #if TEST_BACKGROUND
+ if(!loadBackground()) for(;;){}
+#endif
+#if TEST_FONT
+ if(!buildFontAtlas()) for(;;){}
+#endif
 
  int selected=0,page=0; bool oldUp=false,oldDown=false,oldX=false;
  for(;;) {
@@ -126,8 +146,12 @@ int main(int,char**) {
    }
    gsKit_set_test(gs,GS_ZTEST_OFF);
    gsKit_clear(gs,GS_SETREG_RGBAQ(5,5,4,0x80,0));
+#if TEST_BACKGROUND
    gsKit_prim_sprite_texture(gs,&bg,0,0,0,0,640,448,512,512,1,
      GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
+#endif
+#if TEST_UI
+#if TEST_FONT
    gsKit_prim_sprite(gs,145,36,495,414,2,GS_SETREG_RGBAQ(8,7,5,0x65,0));
    if(page==0) {
      centered("BACKROOMS",82,5,GS_SETREG_RGBAQ(250,225,170,0x80,0));
@@ -154,6 +178,10 @@ int main(int,char**) {
      centered("CHATGPT",295,2,GS_SETREG_RGBAQ(235,225,200,0x80,0));
      centered("O VOLTAR",390,2,GS_SETREG_RGBAQ(245,230,200,0x80,0));
    }
+#else
+   gsKit_prim_sprite(gs,80,80,560,368,2,GS_SETREG_RGBAQ(40,30,10,0x80,0));
+#endif
+#endif
    // Same persistent-mode queue order as the gsKit alpha.c sample.
    gsKit_sync_flip(gs);
    gsKit_queue_exec(gs);
