@@ -122,7 +122,6 @@ int main(int,char**) {
    if(padGetState(0,0)==PAD_STATE_STABLE)
      padSetMainMode(0,0,PAD_MMODE_DUALSHOCK,PAD_MMODE_LOCK);
  }
- #if TEST_BACKGROUND
  bool backgroundReady=true;
  bool fontReady=true;
 #if TEST_BACKGROUND
@@ -153,7 +152,7 @@ int main(int,char**) {
    gsKit_set_test(gs,GS_ZTEST_OFF);
    gsKit_clear(gs,GS_SETREG_RGBAQ(5,5,4,0x80,0));
 #if TEST_BACKGROUND
-   gsKit_prim_sprite_texture(gs,&bg,0,0,0,0,640,448,512,512,1,
+   if(backgroundReady) gsKit_prim_sprite_texture(gs,&bg,0,0,0,0,640,448,512,512,1,
      GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
 #endif
 #if TEST_UI
