@@ -28,7 +28,18 @@ add_executable(backrooms_background_test src/background_test.cpp)
 set_target_properties(backrooms_background_test PROPERTIES OUTPUT_NAME "backrooms-background-test-v3" SUFFIX ".elf")
 target_link_libraries(backrooms_background_test PRIVATE gskit dmakit m)
 
-# Atlas-font menu experiment. Keeps V2 and V3 targets unchanged.
-add_executable(backrooms_menu_atlas src/menu_atlas.cpp)
-set_target_properties(backrooms_menu_atlas PROPERTIES OUTPUT_NAME "backrooms-menu-atlas-v4" SUFFIX ".elf")
-target_link_libraries(backrooms_menu_atlas PRIVATE gskit dmakit pad m)
+# Previous version targets remain above.
+
+# Six isolated diagnostic variants.
+function(add_backrooms_test target output background font ui filter mode)
+  add_executable(${target} src/menu_atlas.cpp)
+  set_target_properties(${target} PROPERTIES OUTPUT_NAME "${output}" SUFFIX ".elf")
+  target_compile_definitions(${target} PRIVATE TEST_BACKGROUND=${background} TEST_FONT=${font} TEST_UI=${ui} TEST_FILTER=${filter} TEST_MODE=${mode})
+  target_link_libraries(${target} PRIVATE gskit dmakit pad m)
+endfunction()
+add_backrooms_test(test01_clear "backrooms-test01-clear-v5" 0 0 0 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test02_bg "backrooms-test02-background-v5" 1 0 0 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test03_primitives "backrooms-test03-primitives-v5" 0 0 1 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test04_font "backrooms-test04-font-v5" 0 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
+add_backrooms_test(test05_bg_linear "backrooms-test05-background-linear-v5" 1 0 0 GS_FILTER_LINEAR GS_MODE_NTSC)
+add_backrooms_test(test06_full "backrooms-test06-full-menu-v5" 1 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
