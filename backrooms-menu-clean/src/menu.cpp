@@ -68,7 +68,7 @@ int main(int,char**) {
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,D_CTRL_STD_OFF,D_CTRL_RCYC_8,1<<DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
     gsKit_init_screen(gs); gsKit_vram_clear(gs); gsKit_set_clamp(gs,GS_CMODE_CLAMP);
-    gsKit_mode_switch(gs,GS_ONESHOT);
+    gsKit_mode_switch(gs,GS_PERSISTENT);
     padInit(0);
     if(padPortOpen(0,0,padBuf)) {
       for(int i=0;i<120 && padGetState(0,0)!=PAD_STATE_STABLE;i++){}
@@ -119,7 +119,11 @@ int main(int,char**) {
         centered("CHATGPT",295,2,GS_SETREG_RGBAQ(235,225,200,0x80,0));
         centered("O VOLTAR",390,2,GS_SETREG_RGBAQ(245,230,200,0x80,0));
       }
-      gsKit_queue_exec(gs); gsKit_sync_flip(gs);
+      // gsKit's frame sequence is sync -> execute queued GIF data -> reset queue.
+      // Executing after the flip was reversed and could show partial/corrupted frames.
+      gsKit_sync_flip(gs);
+      gsKit_queue_exec(gs);
+      gsKit_queue_reset(gs->Per_Queue);
     }
     return 0;
 }
