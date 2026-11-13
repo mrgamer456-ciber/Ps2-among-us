@@ -17,7 +17,7 @@ add_subdirectory(vendor/gsKit gskit-build)
 link_directories("$ENV{PS2SDK}/ee/lib")
 
 add_executable(backrooms src/main.cpp)
-set_target_properties(backrooms PROPERTIES SUFFIX ".elf")
+set_target_properties(backrooms PROPERTIES OUTPUT_NAME "backrooms-20261113" SUFFIX ".elf")
 
 # Same game and graphics, but skip the title/menu loop for direct gameplay testing.
 add_executable(backrooms_nomenu src/main.cpp)
