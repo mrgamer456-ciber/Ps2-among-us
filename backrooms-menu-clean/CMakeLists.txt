@@ -27,3 +27,8 @@ target_link_libraries(backrooms_menu_clean PRIVATE gskit dmakit pad m)
 add_executable(backrooms_background_test src/background_test.cpp)
 set_target_properties(backrooms_background_test PROPERTIES OUTPUT_NAME "backrooms-background-test-v3" SUFFIX ".elf")
 target_link_libraries(backrooms_background_test PRIVATE gskit dmakit m)
+
+# Atlas-font menu experiment. Keeps V2 and V3 targets unchanged.
+add_executable(backrooms_menu_atlas src/menu_atlas.cpp)
+set_target_properties(backrooms_menu_atlas PROPERTIES OUTPUT_NAME "backrooms-menu-atlas-v4" SUFFIX ".elf")
+target_link_libraries(backrooms_menu_atlas PRIVATE gskit dmakit pad m)
