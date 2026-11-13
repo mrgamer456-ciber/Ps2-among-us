@@ -10,31 +10,34 @@ on:
 jobs:
   build-menu:
     runs-on: ubuntu-latest
-    container: h4570/tyra
     steps:
+      # Checkout runs on the host runner, where Git is available.
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Install menu build tools
-        run: |
-          apt-get update
-          apt-get install -y cmake make python3-pil
-      - name: Prepare independent menu assets
-        run: |
-          mkdir -p backrooms-menu-clean/assets
-          cp tyrarooms/assets/menu/main.tga backrooms-menu-clean/assets/main.tga
-          python3 backrooms-menu-clean/tools/make_background.py
-      - name: Compile fresh menu ELF
+      - name: Compile inside the PS2SDK image
         shell: bash
         run: |
           set -e
-          export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
-          cmake -S backrooms-menu-clean -B backrooms-menu-clean/build \
-            -DCMAKE_C_COMPILER=mips64r5900el-ps2-elf-gcc \
-            -DCMAKE_CXX_COMPILER=mips64r5900el-ps2-elf-g++ \
-            -DCMAKE_ASM_COMPILER=mips64r5900el-ps2-elf-gcc
-          cmake --build backrooms-menu-clean/build --parallel 2
-          test -s backrooms-menu-clean/build/backrooms-menu-clean-v1.elf
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" \
+            -w /work \
+            h4570/tyra \
+            bash -lc '
+              set -e
+              apt-get update
+              apt-get install -y cmake make python3-pil
+              export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
+              mkdir -p backrooms-menu-clean/assets
+              cp tyrarooms/assets/menu/main.tga backrooms-menu-clean/assets/main.tga
+              python3 backrooms-menu-clean/tools/make_background.py
+              cmake -S backrooms-menu-clean -B backrooms-menu-clean/build \
+                -DCMAKE_C_COMPILER=mips64r5900el-ps2-elf-gcc \
+                -DCMAKE_CXX_COMPILER=mips64r5900el-ps2-elf-g++ \
+                -DCMAKE_ASM_COMPILER=mips64r5900el-ps2-elf-gcc
+              cmake --build backrooms-menu-clean/build --parallel 2
+              test -s backrooms-menu-clean/build/backrooms-menu-clean-v1.elf
+            '
       - uses: actions/upload-artifact@v4
         with:
           name: backrooms-menu-clean-v1
