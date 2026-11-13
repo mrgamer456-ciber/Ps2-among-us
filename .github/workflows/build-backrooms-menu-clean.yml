@@ -54,13 +54,23 @@ jobs:
               cmake --build backrooms-menu-clean/build --parallel 2
               test -s backrooms-menu-clean/build/backrooms-menu-clean-v2.elf
               test -s backrooms-menu-clean/build/backrooms-background-test-v3.elf
-              test -s backrooms-menu-clean/build/backrooms-menu-atlas-v4.elf
+              test -s backrooms-menu-clean/build/backrooms-test01-clear-v5.elf
+              test -s backrooms-menu-clean/build/backrooms-test02-background-v5.elf
+              test -s backrooms-menu-clean/build/backrooms-test03-primitives-v5.elf
+              test -s backrooms-menu-clean/build/backrooms-test04-font-v5.elf
+              test -s backrooms-menu-clean/build/backrooms-test05-background-linear-v5.elf
+              test -s backrooms-menu-clean/build/backrooms-test06-full-menu-v5.elf
             '
       - uses: actions/upload-artifact@v4
         with:
-          name: Backrooms-PS2-Diagnostic-v3
+          name: Backrooms-PS2-Menu-v5
           path: |
             backrooms-menu-clean/build/backrooms-menu-clean-v2.elf
             backrooms-menu-clean/build/backrooms-background-test-v3.elf
-            backrooms-menu-clean/build/backrooms-menu-atlas-v4.elf
+            backrooms-menu-clean/build/backrooms-test01-clear-v5.elf
+            backrooms-menu-clean/build/backrooms-test02-background-v5.elf
+            backrooms-menu-clean/build/backrooms-test03-primitives-v5.elf
+            backrooms-menu-clean/build/backrooms-test04-font-v5.elf
+            backrooms-menu-clean/build/backrooms-test05-background-linear-v5.elf
+            backrooms-menu-clean/build/backrooms-test06-full-menu-v5.elf
           if-no-files-found: error
