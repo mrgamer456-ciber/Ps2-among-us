@@ -605,8 +605,11 @@ static void runMainMenu() {
                     if (up && !prevUp) selected = (selected + 2) % 3;
                     if (down && !prevDown) selected = (selected + 1) % 3;
                     if (cross && !prevCross) {
-                        if (selected == 0) break;
-                        page = selected == 1 ? 1 : 2;
+                        if (selected == 0) break;       // INICIAR
+                        if (selected == 1) {            // OPCOES: placeholder
+                            /* Intentionally inactive until options are implemented. */
+                        }
+                        if (selected == 2) page = 2;    // CREDITOS
                     }
                 } else if (page == 1) {
                     if (left && !prevLeft) g_difficulty = (g_difficulty + 2) % 3;
