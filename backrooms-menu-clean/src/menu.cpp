@@ -86,7 +86,7 @@ int main(int,char**) {
     for(;;) {
       if(padGetState(0,0)==PAD_STATE_STABLE) {
         padButtonStatus p;
-        if(padRead(0,0,&p)==0) {
+        if(padRead(0,0,&p)!=0) {
           unsigned short b=p.btns;
           bool up=!(b&PAD_UP),down=!(b&PAD_DOWN),x=!(b&PAD_CROSS),o=!(b&PAD_CIRCLE);
           if(page==0) {
