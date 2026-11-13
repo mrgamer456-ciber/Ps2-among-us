@@ -108,7 +108,7 @@ static void centered(const char *s,int y,int scale,u64 color) {
 
 int main(int,char**) {
  gs=gsKit_init_global();
- if(!gs) for(;;){}
+ if(!gs) { for(;;) {} }
  gs->Mode=TEST_MODE; gs->Width=640; gs->Height=448;
  gs->PSM=GS_PSM_CT32; gs->PSMZ=GS_PSMZ_16; gs->ZBuffering=GS_SETTING_OFF;
  gs->PrimAlphaEnable=GS_SETTING_ON;
@@ -123,10 +123,13 @@ int main(int,char**) {
      padSetMainMode(0,0,PAD_MMODE_DUALSHOCK,PAD_MMODE_LOCK);
  }
  #if TEST_BACKGROUND
- if(!loadBackground()) for(;;){}
+ bool backgroundReady=true;
+ bool fontReady=true;
+#if TEST_BACKGROUND
+ backgroundReady=loadBackground();
 #endif
 #if TEST_FONT
- if(!buildFontAtlas()) for(;;){}
+ fontReady=buildFontAtlas();
 #endif
 
  int selected=0,page=0; bool oldUp=false,oldDown=false,oldX=false;
@@ -144,6 +147,9 @@ int main(int,char**) {
        oldUp=up; oldDown=down; oldX=x;
      }
    }
+   // Explicit texture blending: transparent atlas pixels stay invisible and glyph pixels blend.
+   gsKit_set_primalpha(gs,GS_SETREG_ALPHA(0,1,0,1,0),0);
+   gsKit_set_test(gs,GS_ATEST_OFF);
    gsKit_set_test(gs,GS_ZTEST_OFF);
    gsKit_clear(gs,GS_SETREG_RGBAQ(5,5,4,0x80,0));
 #if TEST_BACKGROUND
@@ -152,6 +158,10 @@ int main(int,char**) {
 #endif
 #if TEST_UI
 #if TEST_FONT
+   if(!fontReady || !backgroundReady) {
+     gsKit_prim_sprite(gs,70,70,570,378,2,GS_SETREG_RGBAQ(65,8,8,0x80,0));
+     gsKit_prim_sprite(gs,85,90,555,112,2,GS_SETREG_RGBAQ(220,35,25,0x80,0));
+   } else {
    gsKit_prim_sprite(gs,145,36,495,414,2,GS_SETREG_RGBAQ(8,7,5,0x65,0));
    if(page==0) {
      centered("BACKROOMS",82,5,GS_SETREG_RGBAQ(250,225,170,0x80,0));
@@ -177,6 +187,7 @@ int main(int,char**) {
      centered("FEITO COM PS2SDK E GSKIT",265,1,GS_SETREG_RGBAQ(235,225,200,0x80,0));
      centered("CHATGPT",295,2,GS_SETREG_RGBAQ(235,225,200,0x80,0));
      centered("O VOLTAR",390,2,GS_SETREG_RGBAQ(245,230,200,0x80,0));
+   }
    }
 #else
    gsKit_prim_sprite(gs,80,80,560,368,2,GS_SETREG_RGBAQ(40,30,10,0x80,0));
