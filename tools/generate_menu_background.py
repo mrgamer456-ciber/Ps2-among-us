@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Convert the user-supplied menu BMP into a PS2-ready 512x512 CT32 header."""
+"""Convert the user-supplied TGA menu background into a PS2-ready CT32 header."""
 from pathlib import Path
 from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "tyrarooms/assets/menu/menu_bg.bmp"
+SOURCE = ROOT / "tyrarooms/assets/menu/main.tga"
 OUTPUT = ROOT / "tyrarooms/src/menu_background.h"
 
 if not SOURCE.is_file():
@@ -30,7 +30,7 @@ for i in range(0, len(pixels), 8):
     rows.append("    " + ", ".join(pixels[i:i + 8]))
 header = (
     "#pragma once\n#include <stdint.h>\n"
-    "// Generated from assets/menu/menu_bg.bmp; 512x384 visible image in a 512x512 texture.\n"
+    "// Generated from assets/menu/main.tga; 512x384 visible image in a 512x512 texture.\n"
     "static const uint32_t menuBackgroundPixels[512 * 512] = {\n"
     + ",\n".join(rows) + "\n};\n"
 )
