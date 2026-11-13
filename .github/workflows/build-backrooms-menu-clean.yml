@@ -26,7 +26,7 @@ jobs:
             bash -lc '
               set -e
               apt-get update
-              apt-get install -y cmake make python3-pil
+              apt-get install -y cmake make python3-pil pkg-config git
               export PATH="$PS2DEV/bin:$PS2DEV/ee/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
               mkdir -p backrooms-menu-clean/assets
               cp tyrarooms/assets/menu/main.tga backrooms-menu-clean/assets/main.tga
