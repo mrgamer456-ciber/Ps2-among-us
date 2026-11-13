@@ -22,3 +22,8 @@ link_directories("$ENV{PS2SDK}/ee/lib")
 add_executable(backrooms_menu_clean src/menu.cpp)
 set_target_properties(backrooms_menu_clean PROPERTIES OUTPUT_NAME "backrooms-menu-clean-v2" SUFFIX ".elf")
 target_link_libraries(backrooms_menu_clean PRIVATE gskit dmakit pad m)
+
+# Background-only diagnostic ELF: isolates texture upload and GS display.
+add_executable(backrooms_background_test src/background_test.cpp)
+set_target_properties(backrooms_background_test PROPERTIES OUTPUT_NAME "backrooms-background-test-v3" SUFFIX ".elf")
+target_link_libraries(backrooms_background_test PRIVATE gskit dmakit m)
