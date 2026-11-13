@@ -3,7 +3,9 @@ project(BackroomsCleanMenu LANGUAGES C CXX ASM)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_EXAMPLES "" CACHE STRING "" FORCE)
-# gsKit sources include kernel.h directly; force PS2SDK typedefs first.
+# PS2SDK EE headers require _EE before tamtypes.h defines u32/s32/u64.
+add_compile_definitions(_EE)
+# Ensure typedefs are available before gsKit includes kernel.h.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -include tamtypes.h")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -include tamtypes.h")
 # Add PS2SDK and gsKit headers BEFORE adding gsKit as a subdirectory,
