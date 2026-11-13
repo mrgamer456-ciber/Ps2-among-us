@@ -53,14 +53,7 @@ static bool loadBackground() {
     bg.Width=256; bg.Height=256; bg.TBW=4; bg.PSM=GS_PSM_CT32; bg.Filter=GS_FILTER_LINEAR;
     bg.Mem=(u32*)memalign(128,256*256*4);
     if(!bg.Mem) return false;
-    for(int y=0;y<256;y++) for(int x=0;x<256;x++) {
-      u32 a=cleanMenuPixels[(y*2)*512+x*2], b=cleanMenuPixels[(y*2)*512+x*2+1];
-      u32 c=cleanMenuPixels[(y*2+1)*512+x*2], d=cleanMenuPixels[(y*2+1)*512+x*2+1];
-      u32 r=((a&255)+(b&255)+(c&255)+(d&255))/4;
-      u32 g=(((a>>8)&255)+((b>>8)&255)+((c>>8)&255)+((d>>8)&255))/4;
-      u32 bl=(((a>>16)&255)+((b>>16)&255)+((c>>16)&255)+((d>>16)&255))/4;
-      bg.Mem[y*256+x]=0x80000000u|r|(g<<8)|(bl<<16);
-    }
+    memcpy(bg.Mem, cleanMenuPixels, 256*256*sizeof(uint32_t));
     bg.Vram=gsKit_vram_alloc(gs,gsKit_texture_size(bg.Width,bg.Height,bg.PSM),GSKIT_ALLOC_USERBUFFER);
     if(bg.Vram==GSKIT_ALLOC_ERROR) return false;
     gsKit_texture_upload(gs,&bg);
@@ -99,7 +92,7 @@ int main(int,char**) {
       }
       gsKit_set_test(gs,GS_ZTEST_OFF);
       gsKit_clear(gs,GS_SETREG_RGBAQ(5,5,4,0x80,0));
-      gsKit_prim_sprite_texture(gs,&bg,0,0,0,0,640,448,256,192,1,GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
+      gsKit_prim_sprite_texture(gs,&bg,0,0,0,0,640,448,256,256,1,GS_SETREG_RGBAQ(0x80,0x80,0x80,0x80,0));
       gsKit_prim_sprite(gs,145,36,495,414,2,GS_SETREG_RGBAQ(8,7,5,0x65,0));
       if(page==0) {
         centered("BACKROOMS",82,5,GS_SETREG_RGBAQ(250,225,170,0x80,0));
