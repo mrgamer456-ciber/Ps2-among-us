@@ -224,7 +224,9 @@ int main(int argc,char **argv) {
 #endif
 #endif
 #if TEST_AUDIO
-   centered(audioStatusLabel(),432,1,GS_SETREG_RGBAQ(255,235,190,0x80,0));
+   gsKit_prim_sprite(gs,170,360,470,402,2,GS_SETREG_RGBAQ(8,7,5,0x90,0));
+   centered("AUDIO STATUS",365,1,GS_SETREG_RGBAQ(230,215,180,0x80,0));
+   centered(audioStatusLabel(),382,1,GS_SETREG_RGBAQ(255,235,190,0x80,0));
 #endif
    // Same persistent-mode queue order as the gsKit alpha.c sample.
    gsKit_sync_flip(gs);
