@@ -224,9 +224,8 @@ int main(int argc,char **argv) {
 #endif
 #endif
 #if TEST_AUDIO
-   gsKit_prim_sprite(gs,170,360,470,402,2,GS_SETREG_RGBAQ(8,7,5,0x90,0));
-   centered("AUDIO STATUS",365,1,GS_SETREG_RGBAQ(230,215,180,0x80,0));
-   centered(audioStatusLabel(),382,1,GS_SETREG_RGBAQ(255,235,190,0x80,0));
+   // Compact diagnostic in the bottom-left corner; scale 2 keeps the atlas crisp.
+   drawText(audioStatusLabel(),8,430,2,GS_SETREG_RGBAQ(255,235,190,0x80,0));
 #endif
    // Same persistent-mode queue order as the gsKit alpha.c sample.
    gsKit_sync_flip(gs);
