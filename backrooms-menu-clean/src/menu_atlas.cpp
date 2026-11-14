@@ -26,7 +26,8 @@
 #define TEST_AUDIO 0
 #endif
 #if TEST_AUDIO
-extern void startMenuAudio();
+extern void startMenuAudio(const char *elfPath);
+extern int getMenuAudioStatus();
 #endif
 
 static GSGLOBAL *gs = 0;
@@ -112,7 +113,25 @@ static void centered(const char *s,int y,int scale,u64 color) {
  drawText(s,(640-n*6*scale+scale)/2,y,scale,color);
 }
 
-int main(int,char**) {
+static const char *audioStatusLabel() {
+ switch(getMenuAudioStatus()) {
+  case 1: return "AUDIO: STARTING";
+  case 2: return "AUDIO: FILE FAIL";
+  case 3: return "AUDIO: FOOTER FAIL";
+  case 4: return "AUDIO: WAV FAIL";
+  case 5: return "AUDIO: IRX FAIL";
+  case 6: return "AUDIO: LIBSD FAIL";
+  case 7: return "AUDIO: AUDSRV FAIL";
+  case 8: return "AUDIO: FORMAT FAIL";
+  case 9: return "AUDIO: VOLUME FAIL";
+  case 10: return "AUDIO: PLAYING";
+  case 11: return "AUDIO: STREAM FAIL";
+  case 12: return "AUDIO: THREAD FAIL";
+  default: return "AUDIO: WAIT";
+ }
+}
+
+int main(int argc,char **argv) {
  gs=gsKit_init_global();
  if(!gs) { for(;;) {} }
  gs->Mode=TEST_MODE; gs->Width=640; gs->Height=448;
@@ -137,7 +156,7 @@ int main(int,char**) {
  fontReady=buildFontAtlas();
 #endif
 #if TEST_AUDIO
- startMenuAudio();
+ startMenuAudio((argc > 0 && argv) ? argv[0] : 0);
 #endif
 
  int selected=0,page=0; bool oldUp=false,oldDown=false,oldX=false;
@@ -201,6 +220,7 @@ int main(int,char**) {
    gsKit_prim_sprite(gs,80,80,560,368,2,GS_SETREG_RGBAQ(40,30,10,0x80,0));
 #endif
 #endif
+   centered(audioStatusLabel(),432,1,GS_SETREG_RGBAQ(255,235,190,0x80,0));
    // Same persistent-mode queue order as the gsKit alpha.c sample.
    gsKit_sync_flip(gs);
    gsKit_queue_exec(gs);
