@@ -68,13 +68,13 @@ jobs:
               test -s backrooms-menu-clean/build/backrooms-test04-font-v6.elf
               test -s backrooms-menu-clean/build/backrooms-test05-background-linear-v6.elf
               test -s backrooms-menu-clean/build/backrooms-test06-full-menu-v6.elf
-              test -s backrooms-menu-clean/build/backrooms-full-menu-v7.elf
-              python3 backrooms-menu-clean/tools/pack_single_elf.py --elf backrooms-menu-clean/build/backrooms-full-menu-v7.elf --wav "tyrarooms/assets/menu/Main Menu -Credits Track.wav" --irx "$PS2SDK/iop/irx/audsrv.irx" --output backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
-              test -s backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
+              test -s backrooms-menu-clean/build/backrooms-full-menu-v8.elf
+              python3 backrooms-menu-clean/tools/pack_single_elf.py --elf backrooms-menu-clean/build/backrooms-full-menu-v8.elf --wav "tyrarooms/assets/menu/Main Menu -Credits Track.wav" --irx "$PS2SDK/iop/irx/audsrv.irx" --output backrooms-menu-clean/build/dist/backrooms-full-menu-v8.elf
+              test -s backrooms-menu-clean/build/dist/backrooms-full-menu-v8.elf
               test -s backrooms-menu-clean/build/backrooms-launcher-probe-v1.elf
             '
       - uses: actions/upload-artifact@v4
         with:
-          name: Backrooms-PS2-Menu-v6
-          path: backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
+          name: Backrooms-PS2-Menu-v8
+          path: backrooms-menu-clean/build/dist/backrooms-full-menu-v8.elf
           if-no-files-found: error
