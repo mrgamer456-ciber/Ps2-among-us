@@ -53,8 +53,7 @@ jobs:
                 -DCMAKE_ASM_COMPILER=mips64r5900el-ps2-elf-gcc
               cmake --build backrooms-menu-clean/build --parallel 2
               test -s "$PS2SDK/iop/irx/audsrv.irx"
-              cp "$PS2SDK/iop/irx/audsrv.irx" backrooms-menu-clean/build/audsrv.irx
-              cp "tyrarooms/assets/menu/Main Menu -Credits Track.wav" "backrooms-menu-clean/build/Main Menu -Credits Track.wav"
+              test -s "tyrarooms/assets/menu/Main Menu -Credits Track.wav"
               test -s backrooms-menu-clean/build/backrooms-menu-clean-v2.elf
               test -s backrooms-menu-clean/build/backrooms-background-test-v3.elf
               test -s backrooms-menu-clean/build/backrooms-test01-clear-v5.elf
@@ -69,29 +68,17 @@ jobs:
               test -s backrooms-menu-clean/build/backrooms-test04-font-v6.elf
               test -s backrooms-menu-clean/build/backrooms-test05-background-linear-v6.elf
               test -s backrooms-menu-clean/build/backrooms-test06-full-menu-v6.elf
-              test -s "backrooms-menu-clean/build/Main Menu -Credits Track.wav"
-              test -s backrooms-menu-clean/build/audsrv.irx
+              test -s backrooms-menu-clean/build/backrooms-full-menu-v7.elf
+              python3 backrooms-menu-clean/tools/pack_single_elf.py \\
+                --elf backrooms-menu-clean/build/backrooms-full-menu-v7.elf \\
+                --wav "tyrarooms/assets/menu/Main Menu -Credits Track.wav" \\
+                --irx "$PS2SDK/iop/irx/audsrv.irx" \\
+                --output backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
+              test -s backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
               test -s backrooms-menu-clean/build/backrooms-launcher-probe-v1.elf
             '
       - uses: actions/upload-artifact@v4
         with:
           name: Backrooms-PS2-Menu-v6
-          path: |
-            backrooms-menu-clean/build/backrooms-menu-clean-v2.elf
-            backrooms-menu-clean/build/backrooms-background-test-v3.elf
-            backrooms-menu-clean/build/backrooms-test01-clear-v5.elf
-            backrooms-menu-clean/build/backrooms-test02-background-v5.elf
-            backrooms-menu-clean/build/backrooms-test03-primitives-v5.elf
-            backrooms-menu-clean/build/backrooms-test04-font-v5.elf
-            backrooms-menu-clean/build/backrooms-test05-background-linear-v5.elf
-            backrooms-menu-clean/build/backrooms-test06-full-menu-v5.elf
-            backrooms-menu-clean/build/backrooms-test01-clear-v6.elf
-            backrooms-menu-clean/build/backrooms-test02-background-v6.elf
-            backrooms-menu-clean/build/backrooms-test03-primitives-v6.elf
-            backrooms-menu-clean/build/backrooms-test04-font-v6.elf
-            backrooms-menu-clean/build/backrooms-test05-background-linear-v6.elf
-            backrooms-menu-clean/build/backrooms-test06-full-menu-v6.elf
-            backrooms-menu-clean/build/audsrv.irx
-            backrooms-menu-clean/build/Main Menu -Credits Track.wav
-            backrooms-menu-clean/build/backrooms-launcher-probe-v1.elf
+          path: backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
           if-no-files-found: error
