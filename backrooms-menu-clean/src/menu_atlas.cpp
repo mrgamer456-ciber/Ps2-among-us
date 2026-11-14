@@ -113,6 +113,7 @@ static void centered(const char *s,int y,int scale,u64 color) {
  drawText(s,(640-n*6*scale+scale)/2,y,scale,color);
 }
 
+#if TEST_AUDIO
 static const char *audioStatusLabel() {
  switch(getMenuAudioStatus()) {
   case 1: return "AUDIO: STARTING";
@@ -130,6 +131,8 @@ static const char *audioStatusLabel() {
   default: return "AUDIO: WAIT";
  }
 }
+
+#endif
 
 int main(int argc,char **argv) {
  gs=gsKit_init_global();
@@ -220,7 +223,9 @@ int main(int argc,char **argv) {
    gsKit_prim_sprite(gs,80,80,560,368,2,GS_SETREG_RGBAQ(40,30,10,0x80,0));
 #endif
 #endif
+#if TEST_AUDIO
    centered(audioStatusLabel(),432,1,GS_SETREG_RGBAQ(255,235,190,0x80,0));
+#endif
    // Same persistent-mode queue order as the gsKit alpha.c sample.
    gsKit_sync_flip(gs);
    gsKit_queue_exec(gs);
