@@ -9,9 +9,25 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-static const char *kElfPath = "mass:/backrooms-full-menu-v8.elf";
 static unsigned char audioStack[8192] __attribute__((aligned(16)));
 static int audioThreadId = -1;
+static char requestedElfPath[256];
+static volatile int audioStatus = 0;
+
+enum {
+  AUDIO_STARTING = 1,
+  AUDIO_OPEN_FAILED = 2,
+  AUDIO_FOOTER_FAILED = 3,
+  AUDIO_WAV_FAILED = 4,
+  AUDIO_IRX_FAILED = 5,
+  AUDIO_LIBSD_FAILED = 6,
+  AUDIO_AUDSRV_FAILED = 7,
+  AUDIO_FORMAT_FAILED = 8,
+  AUDIO_VOLUME_FAILED = 9,
+  AUDIO_PLAYING = 10,
+  AUDIO_STREAM_FAILED = 11,
+  AUDIO_THREAD_FAILED = 12
+};
 
 struct __attribute__((packed)) AudioFooter {
   char magic[8];
@@ -81,6 +97,27 @@ static bool readWavInfo(FILE *f, long wavOffset, WavInfo *w) {
   return fseek(f, dataOffset, SEEK_SET) == 0;
 }
 
+static FILE *openElfFromUSB() {
+  FILE *f = 0;
+  if (requestedElfPath[0]) {
+    f = fopen(requestedElfPath, "rb");
+    if (f) return f;
+  }
+  const char *paths[] = {
+    "mass:/backrooms-full-menu-v9.elf",
+    "mass:/backrooms-ps2-maze-20261113/backrooms-full-menu-v9.elf",
+    "mass:/backrooms-ps2-maze/backrooms-full-menu-v9.elf",
+    0
+  };
+  for (int i = 0; paths[i]; ++i) {
+    if (requestedElfPath[0] && strcmp(requestedElfPath, paths[i]) == 0)
+      continue;
+    f = fopen(paths[i], "rb");
+    if (f) return f;
+  }
+  return 0;
+}
+
 static bool locateEmbeddedFiles(FILE *f, long *wavOffset, uint32_t *wavSize,
                                 long *irxOffset, uint32_t *irxSize) {
   if (fseek(f, 0, SEEK_END) != 0) return false;
@@ -92,7 +129,7 @@ static bool locateEmbeddedFiles(FILE *f, long *wavOffset, uint32_t *wavSize,
       fread(&footer, 1, sizeof(footer), f) != sizeof(footer)) return false;
   if (memcmp(footer.magic, "BKAUD01", 7) != 0) return false;
 
-  long payloadStart = end - (long)sizeof(footer) -
+  long payloadStart = end - (long)sizeof(AudioFooter) -
                       (long)footer.wavSize - (long)footer.irxSize;
   if (payloadStart <= 0 || footer.wavSize == 0 || footer.irxSize == 0)
     return false;
@@ -106,12 +143,16 @@ static bool locateEmbeddedFiles(FILE *f, long *wavOffset, uint32_t *wavSize,
 
 static void audioWorker(void *arg) {
   (void)arg;
-  FILE *elf = fopen(kElfPath, "rb");
-  if (!elf) return;
+  FILE *elf = openElfFromUSB();
+  if (!elf) {
+    audioStatus = AUDIO_OPEN_FAILED;
+    return;
+  }
 
   long wavOffset = 0, irxOffset = 0;
   uint32_t wavSize = 0, irxSize = 0;
   if (!locateEmbeddedFiles(elf, &wavOffset, &wavSize, &irxOffset, &irxSize)) {
+    audioStatus = AUDIO_FOOTER_FAILED;
     fclose(elf);
     return;
   }
@@ -119,6 +160,7 @@ static void audioWorker(void *arg) {
   WavInfo info;
   if (!readWavInfo(elf, wavOffset, &info) ||
       info.dataOffset + (long)info.dataSize > wavOffset + (long)wavSize) {
+    audioStatus = AUDIO_WAV_FAILED;
     fclose(elf);
     return;
   }
@@ -126,7 +168,28 @@ static void audioWorker(void *arg) {
   void *irx = memalign(16, irxSize);
   if (!irx || fseek(elf, irxOffset, SEEK_SET) != 0 ||
       fread(irx, 1, irxSize, elf) != irxSize) {
+    audioStatus = AUDIO_IRX_FAILED;
     if (irx) free(irx);
+    fclose(elf);
+    return;
+  }
+
+  if (SifLoadModule("rom0:LIBSD", 0, 0) < 0) {
+    audioStatus = AUDIO_LIBSD_FAILED;
+    free(irx);
+    fclose(elf);
+    return;
+  }
+  if (SifExecModuleBuffer(irx, irxSize, 0, 0, 0) < 0) {
+    audioStatus = AUDIO_IRX_FAILED;
+    free(irx);
+    fclose(elf);
+    return;
+  }
+  free(irx);
+
+  if (audsrv_init() != AUDSRV_ERR_NOERROR) {
+    audioStatus = AUDIO_AUDSRV_FAILED;
     fclose(elf);
     return;
   }
@@ -135,17 +198,14 @@ static void audioWorker(void *arg) {
   fmt.freq = info.rate;
   fmt.bits = info.bits;
   fmt.channels = info.channels;
-
-  if (SifLoadModule("rom0:LIBSD", 0, 0) < 0 ||
-      SifExecModuleBuffer(irx, irxSize, 0, 0, 0) < 0 ||
-      audsrv_init() != AUDSRV_ERR_NOERROR ||
-      audsrv_set_format(&fmt) != AUDSRV_ERR_NOERROR) {
-    free(irx);
+  if (audsrv_set_format(&fmt) != AUDSRV_ERR_NOERROR) {
+    audioStatus = AUDIO_FORMAT_FAILED;
+    audsrv_quit();
     fclose(elf);
     return;
   }
-  free(irx);
   if (audsrv_set_volume(MAX_VOLUME) != AUDSRV_ERR_NOERROR) {
+    audioStatus = AUDIO_VOLUME_FAILED;
     audsrv_quit();
     fclose(elf);
     return;
@@ -154,33 +214,44 @@ static void audioWorker(void *arg) {
   unsigned char chunk[2048] __attribute__((aligned(16)));
   const int frameBytes = info.channels * (info.bits / 8);
   uint32_t remaining = info.dataSize;
+  audioStatus = AUDIO_PLAYING;
 
   for (;;) {
     if (remaining == 0) {
-      if (fseek(elf, info.dataOffset, SEEK_SET) != 0) break;
+      if (fseek(elf, info.dataOffset, SEEK_SET) != 0) {
+        audioStatus = AUDIO_STREAM_FAILED;
+        break;
+      }
       remaining = info.dataSize;
     }
 
     int want = remaining > sizeof(chunk) ? sizeof(chunk) : (int)remaining;
     want -= want % frameBytes;
     if (want <= 0) {
-      if (fseek(elf, info.dataOffset, SEEK_SET) != 0) break;
-      remaining = info.dataSize;
-      continue;
+      audioStatus = AUDIO_STREAM_FAILED;
+      break;
     }
 
     int got = (int)fread(chunk, 1, want, elf);
     if (got <= 0) {
-      if (fseek(elf, info.dataOffset, SEEK_SET) != 0) break;
-      remaining = info.dataSize;
-      continue;
+      audioStatus = AUDIO_STREAM_FAILED;
+      break;
     }
 
     got -= got % frameBytes;
-    if (got == 0) continue;
-    if (audsrv_wait_audio(got) != AUDSRV_ERR_NOERROR) break;
+    if (got == 0) {
+      audioStatus = AUDIO_STREAM_FAILED;
+      break;
+    }
+    if (audsrv_wait_audio(got) != AUDSRV_ERR_NOERROR) {
+      audioStatus = AUDIO_STREAM_FAILED;
+      break;
+    }
     int sent = audsrv_play_audio((const char *)chunk, got);
-    if (sent < 0) break;
+    if (sent != got) {
+      audioStatus = AUDIO_STREAM_FAILED;
+      break;
+    }
     remaining -= (uint32_t)got;
   }
 
@@ -189,9 +260,17 @@ static void audioWorker(void *arg) {
   fclose(elf);
 }
 
-void startMenuAudio() {
+int getMenuAudioStatus() {
+  return audioStatus;
+}
+
+void startMenuAudio(const char *elfPath) {
   if (audioThreadId >= 0) return;
-  // Initialize SIF RPC on the main EE thread before the audio worker uses IOP RPC.
+  if (elfPath && elfPath[0]) {
+    strncpy(requestedElfPath, elfPath, sizeof(requestedElfPath) - 1);
+    requestedElfPath[sizeof(requestedElfPath) - 1] = '\0';
+  }
+  audioStatus = AUDIO_STARTING;
   SifInitRpc(0);
   ee_thread_t thread;
   memset(&thread, 0, sizeof(thread));
@@ -200,5 +279,9 @@ void startMenuAudio() {
   thread.stack_size = sizeof(audioStack);
   thread.initial_priority = 40;
   audioThreadId = CreateThread(&thread);
-  if (audioThreadId >= 0) StartThread(audioThreadId, 0);
+  if (audioThreadId >= 0) {
+    StartThread(audioThreadId, 0);
+  } else {
+    audioStatus = AUDIO_THREAD_FAILED;
+  }
 }
