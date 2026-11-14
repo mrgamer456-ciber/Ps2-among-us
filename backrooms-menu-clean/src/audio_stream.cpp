@@ -7,6 +7,8 @@
 #include <stdint.h>
 #include <string.h>
 
+extern "C" void *_gp;
+
 static const char *kWavPath = "mass:/Main Menu -Credits Track.wav";
 static const char *kAudSrvPath = "mass:/audsrv.irx";
 static unsigned char audioStack[8192] __attribute__((aligned(16)));
@@ -150,4 +152,3 @@ void startMenuAudio() {
   audioThreadId = CreateThread(&thread);
   if (audioThreadId >= 0) StartThread(audioThreadId, 0);
 }
-extern "C" void *_gp;
