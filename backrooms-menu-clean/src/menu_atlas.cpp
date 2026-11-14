@@ -22,6 +22,12 @@
 #ifndef TEST_MODE
 #define TEST_MODE GS_MODE_NTSC
 #endif
+#ifndef TEST_AUDIO
+#define TEST_AUDIO 0
+#endif
+#if TEST_AUDIO
+extern void startMenuAudio();
+#endif
 
 static GSGLOBAL *gs = 0;
 static GSTEXTURE bg;
@@ -129,6 +135,9 @@ int main(int,char**) {
 #endif
 #if TEST_FONT
  fontReady=buildFontAtlas();
+#endif
+#if TEST_AUDIO
+ startMenuAudio();
 #endif
 
  int selected=0,page=0; bool oldUp=false,oldDown=false,oldX=false;
