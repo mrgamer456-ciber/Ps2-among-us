@@ -211,10 +211,19 @@ static void audioWorker(void *arg) {
     return;
   }
 
+  // Loading the embedded IRX moved the FILE cursor. Return to the actual
+  // WAV data payload before sending the first audio block.
+  if (fseek(elf, info.dataOffset, SEEK_SET) != 0) {
+    audioStatus = AUDIO_STREAM_FAILED;
+    audsrv_quit();
+    fclose(elf);
+    return;
+  }
+
   unsigned char chunk[2048] __attribute__((aligned(16)));
   const int frameBytes = info.channels * (info.bits / 8);
   uint32_t remaining = info.dataSize;
-  audioStatus = AUDIO_PLAYING;
+  bool firstChunk = true;
 
   for (;;) {
     if (remaining == 0) {
@@ -252,6 +261,10 @@ static void audioWorker(void *arg) {
       audioStatus = AUDIO_STREAM_FAILED;
       break;
     }
+    if (firstChunk) {
+      audioStatus = AUDIO_PLAYING;
+      firstChunk = false;
+    }
     remaining -= (uint32_t)got;
   }
 
@@ -277,10 +290,15 @@ void startMenuAudio(const char *elfPath) {
   thread.func = (void *)audioWorker;
   thread.stack = audioStack;
   thread.stack_size = sizeof(audioStack);
+  thread.gp_reg = &_gp;
   thread.initial_priority = 40;
   audioThreadId = CreateThread(&thread);
   if (audioThreadId >= 0) {
-    StartThread(audioThreadId, 0);
+    if (StartThread(audioThreadId, 0) < 0) {
+      DeleteThread(audioThreadId);
+      audioThreadId = -1;
+      audioStatus = AUDIO_THREAD_FAILED;
+    }
   } else {
     audioStatus = AUDIO_THREAD_FAILED;
   }
