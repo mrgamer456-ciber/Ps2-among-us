@@ -52,10 +52,11 @@ add_backrooms_test(test03_primitives_v6 "backrooms-test03-primitives-v6" 0 0 1 G
 add_backrooms_test(test04_font_v6 "backrooms-test04-font-v6" 0 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
 add_backrooms_test(test05_bg_linear_v6 "backrooms-test05-background-linear-v6" 1 0 0 GS_FILTER_LINEAR GS_MODE_NTSC)
 add_backrooms_test(test06_full_v6 "backrooms-test06-full-menu-v6" 1 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
-# Only the V6 full-menu build includes streamed looping WAV playback.
-target_sources(test06_full_v6 PRIVATE src/audio_stream.cpp)
-target_compile_definitions(test06_full_v6 PRIVATE TEST_AUDIO=1)
-target_link_libraries(test06_full_v6 PRIVATE audsrv)
+# V7: same confirmed V6 menu, with audio loaded from data appended to the ELF.
+add_backrooms_test(test06_full_v7 "backrooms-full-menu-v7" 1 1 1 GS_FILTER_NEAREST GS_MODE_NTSC)
+target_sources(test06_full_v7 PRIVATE src/audio_stream.cpp)
+target_compile_definitions(test06_full_v7 PRIVATE TEST_AUDIO=1)
+target_link_libraries(test06_full_v7 PRIVATE audsrv)
 
 
 # Minimal video initialization probe: no texture/font/menu dependencies.
