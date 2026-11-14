@@ -104,10 +104,10 @@ static FILE *openElfFromUSB() {
     if (f) return f;
   }
   const char *paths[] = {
-    "mass:/backrooms-full-menu-v10.elf",
-    "mass:/Backrooms-PS2-Menu-v10/backrooms-full-menu-v10.elf",
-    "mass:/backrooms-ps2-maze-20261113/backrooms-full-menu-v10.elf",
-    "mass:/backrooms-ps2-maze/backrooms-full-menu-v10.elf",
+    "mass:/backrooms-full-menu-v11.elf",
+    "mass:/Backrooms-PS2-Menu-v11/backrooms-full-menu-v11.elf",
+    "mass:/backrooms-ps2-maze-20261113/backrooms-full-menu-v11.elf",
+    "mass:/backrooms-ps2-maze/backrooms-full-menu-v11.elf",
     0
   };
   for (int i = 0; paths[i]; ++i) {
