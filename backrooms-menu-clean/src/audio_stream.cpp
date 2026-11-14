@@ -136,7 +136,6 @@ static void audioWorker(void *arg) {
   fmt.bits = info.bits;
   fmt.channels = info.channels;
 
-  SifInitRpc(0);
   if (SifLoadModule("rom0:LIBSD", 0, 0) < 0 ||
       SifExecModuleBuffer(irx, irxSize, 0, 0, 0) < 0 ||
       audsrv_init() != AUDSRV_ERR_NOERROR ||
@@ -146,7 +145,11 @@ static void audioWorker(void *arg) {
     return;
   }
   free(irx);
-  audsrv_set_volume(70);
+  if (audsrv_set_volume(MAX_VOLUME) != AUDSRV_ERR_NOERROR) {
+    audsrv_quit();
+    fclose(elf);
+    return;
+  }
 
   unsigned char chunk[2048] __attribute__((aligned(16)));
   const int frameBytes = info.channels * (info.bits / 8);
@@ -175,8 +178,9 @@ static void audioWorker(void *arg) {
 
     got -= got % frameBytes;
     if (got == 0) continue;
-    audsrv_wait_audio(got);
-    audsrv_play_audio((const char *)chunk, got);
+    if (audsrv_wait_audio(got) != AUDSRV_ERR_NOERROR) break;
+    int sent = audsrv_play_audio((const char *)chunk, got);
+    if (sent < 0) break;
     remaining -= (uint32_t)got;
   }
 
@@ -187,6 +191,8 @@ static void audioWorker(void *arg) {
 
 void startMenuAudio() {
   if (audioThreadId >= 0) return;
+  // Initialize SIF RPC on the main EE thread before the audio worker uses IOP RPC.
+  SifInitRpc(0);
   ee_thread_t thread;
   memset(&thread, 0, sizeof(thread));
   thread.func = (void *)audioWorker;
