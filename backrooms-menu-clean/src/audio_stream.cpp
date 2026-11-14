@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include <string.h>
 
-extern "C" void *_gp;
 
 static const char *kWavPath = "mass:/Main Menu -Credits Track.wav";
 static const char *kAudSrvPath = "mass:/audsrv.irx";
@@ -92,7 +91,7 @@ static void audioWorker(void *arg) {
   fmt.bits = info.bits;
   fmt.channels = info.channels;
 
-  sceSifInitRpc(0);
+  SifInitRpc(0);
   if (SifLoadModule("rom0:LIBSD", 0, 0) < 0 ||
       SifLoadModule(kAudSrvPath, 0, 0) < 0 ||
       audsrv_init() != AUDSRV_ERR_NOERROR ||
@@ -144,11 +143,10 @@ void startMenuAudio() {
   if (audioThreadId >= 0) return;
   ee_thread_t thread;
   memset(&thread, 0, sizeof(thread));
-  thread.func = audioWorker;
+  thread.func = (void *)audioWorker;
   thread.stack = audioStack;
   thread.stack_size = sizeof(audioStack);
   thread.initial_priority = 40;
-  thread.gp = &_gp;
   audioThreadId = CreateThread(&thread);
   if (audioThreadId >= 0) StartThread(audioThreadId, 0);
 }
