@@ -224,7 +224,7 @@ int main(int argc,char **argv) {
 #endif
 #endif
 #if TEST_AUDIO
-   // Compact diagnostic in the bottom-left corner; scale 2 keeps the atlas crisp.
+   // V11: compact diagnostic in the bottom-left corner; scale 2 keeps the atlas crisp.
    drawText(audioStatusLabel(),8,430,2,GS_SETREG_RGBAQ(255,235,190,0x80,0));
 #endif
    // Same persistent-mode queue order as the gsKit alpha.c sample.
