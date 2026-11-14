@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 
-static const char *kElfPath = "mass:/backrooms-full-menu-v7.elf";
+static const char *kElfPath = "mass:/backrooms-full-menu-v8.elf";
 static unsigned char audioStack[8192] __attribute__((aligned(16)));
 static int audioThreadId = -1;
 
