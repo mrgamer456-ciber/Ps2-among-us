@@ -1,4 +1,4 @@
-name: Build Backrooms Clean Menu V6
+name: Build Backrooms Full Menu V7 (single ELF)
 
 on:
   push:
@@ -69,11 +69,7 @@ jobs:
               test -s backrooms-menu-clean/build/backrooms-test05-background-linear-v6.elf
               test -s backrooms-menu-clean/build/backrooms-test06-full-menu-v6.elf
               test -s backrooms-menu-clean/build/backrooms-full-menu-v7.elf
-              python3 backrooms-menu-clean/tools/pack_single_elf.py \
-                --elf backrooms-menu-clean/build/backrooms-full-menu-v7.elf \
-                --wav "tyrarooms/assets/menu/Main Menu -Credits Track.wav" \
-                --irx "$PS2SDK/iop/irx/audsrv.irx" \
-                --output backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
+              python3 backrooms-menu-clean/tools/pack_single_elf.py --elf backrooms-menu-clean/build/backrooms-full-menu-v7.elf --wav "tyrarooms/assets/menu/Main Menu -Credits Track.wav" --irx "$PS2SDK/iop/irx/audsrv.irx" --output backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
               test -s backrooms-menu-clean/build/dist/backrooms-full-menu-v7.elf
               test -s backrooms-menu-clean/build/backrooms-launcher-probe-v1.elf
             '
